@@ -3,5 +3,5 @@
 # Arch Linux Installer by Franjo Pusticki
 # --------------------------------------------------------
 echo "TEST FROM GIT"
-iwctl
-station list
+iwctl station list
+
