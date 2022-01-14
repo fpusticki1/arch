@@ -46,9 +46,11 @@ echo
 echo "*****************  Listing Disk drives  *****************" && sleep 1
 echo "*********************************************************" && sleep 1
 lsblk
+echo
 echo "*********************************************************" && sleep 1
 fdisk -l
 echo "*********************************************************" && sleep 1
+echo
 read -p "This operation will erase the disk!!!
 *** Enter your disk name (example: /dev/sda): " mydisk
 read -p "Selected disk is: *** ${mydisk} ***
@@ -57,15 +59,6 @@ if [ "${confirm}" = "YES" ]; then
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk} #root partition
-  echo
-  echo "*****************  Listing Disk drives  *****************" && sleep 1
-	echo "*********************************************************" && sleep 1
-	lsblk
-	echo "*********************************************************" && sleep 1
-	fdisk -l
-	echo "*********************************************************" && sleep 1
-  read -p "Please check your new partitions.
-  *** Press any key to continue..." continue
   bootpart = "${mydisk}1"
   swappart = "${mydisk}2"
   rootpart = "${mydisk}3"
@@ -76,18 +69,35 @@ else
 fi
 
 #PARTITION FORMATTING
-echo "Formatting partitions..." && sleep 1
+echo "Formatting partitions..." && sleep 2
+read -p "Press any key to continue..." continue
 mkfs.ext4 ${rootpart}
+read -p "Press any key to continue..." continue
 mkswap ${swappart}
+read -p "Press any key to continue..." continue
 mkfs.fat -F 32 ${bootpart}
-
+read -p "Press any key to continue..." continue
 
 #MOUNTING FILESYSTEMS
-echo "Mounting filesystems..." && sleep 1
+echo "Mounting filesystems..." && sleep 2
 mount ${rootpart} /mnt
+read -p "Press any key to continue..." continue
 swapon ${swappart}
+read -p "Press any key to continue..." continue
 mkdir /mnt/boot
+read -p "Press any key to continue..." continue
 mount ${bootpart} /mnt/boot
+read -p "Press any key to continue..." continue
 
-sleep 2
-exit 0
+#SHOW CREATED PARTITIONS
+echo
+echo "*****************  Listing Disk drives  *****************" && sleep 1
+echo "*********************************************************" && sleep 1
+lsblk
+echo
+echo "*********************************************************" && sleep 1
+fdisk -l
+echo "*********************************************************" && sleep 1
+echo
+read -p "Please check your new partitions.
+*** Press any key to continue..." continue
