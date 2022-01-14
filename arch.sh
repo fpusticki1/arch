@@ -6,7 +6,7 @@ echo
 echo "####################################################"
 echo "##### Welcome to the Arch installation script. #####"
 echo "####################################################"
-echo && sleep 3
+echo && sleep 2
 
 ###-----------------------------------------------------------------------------
 ### PART 1: BASIC CONFIGURATION ------------------------------------------------
@@ -43,7 +43,7 @@ timedatectl set-ntp true
 
 #DISK PARTITIONING
 echo
-echo "*****************  Listing Disk drives  *****************" && sleep 1
+echo "*****************  Listing Disk drives  *****************"
 echo "*********************************************************" && sleep 1
 lsblk
 echo
@@ -69,29 +69,21 @@ else
 fi
 
 #PARTITION FORMATTING
-echo "Formatting partitions..." && sleep 2
-read -p "Press any key to continue..." continue
+echo "Formatting partitions..." && sleep 1
 mkfs.ext4 ${rootpart}
-read -p "Press any key to continue..." continue
 mkswap ${swappart}
-read -p "Press any key to continue..." continue
 mkfs.fat -F 32 ${bootpart}
-read -p "Press any key to continue..." continue
 
 #MOUNTING FILESYSTEMS
-echo "Mounting filesystems..." && sleep 2
+echo "Mounting filesystems..." && sleep 1
 mount ${rootpart} /mnt
-read -p "Press any key to continue..." continue
 swapon ${swappart}
-read -p "Press any key to continue..." continue
 mkdir /mnt/boot
-read -p "Press any key to continue..." continue
 mount ${bootpart} /mnt/boot
-read -p "Press any key to continue..." continue
 
 #SHOW CREATED PARTITIONS
 echo
-echo "*****************  Listing Disk drives  *****************" && sleep 1
+echo "*****************  Listing Disk drives  *****************"
 echo "*********************************************************" && sleep 1
 lsblk
 echo
