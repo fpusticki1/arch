@@ -59,9 +59,9 @@ if [ "${confirm}" = "YES" ]; then
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk} #root partition
-  bootpart = "${mydisk}1"
-  swappart = "${mydisk}2"
-  rootpart = "${mydisk}3"
+  bootpart="${mydisk}1"
+  swappart="${mydisk}2"
+  rootpart="${mydisk}3"
 else
 	echo "***** Exiting installation script... *****"
 	sleep 5
