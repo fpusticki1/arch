@@ -58,10 +58,9 @@ read -p "Selected disk is: *** ${mydisk} ***
 if [ "${confirm}" = "YES" ]; then
   for n in ${mydisk}* ; do umount $n ; done
   for n in ${mydisk}* ; do swapoff $n ; done
-  (echo g; echo w) | fdisk ${mydisk} #delete all partitions!
-  (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
-  (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
-  (echo n; echo; echo; echo; echo w) | fdisk ${mydisk} #root partition
+  (echo g; echo n; echo; echo; echo +512M; echo Y; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
+  (echo n; echo; echo; echo +4G; echo Y; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
+  (echo n; echo; echo; echo; echo Y; echo w) | fdisk ${mydisk} #root partition
   read -p "*** Press Enter to continue..." continue
   bootpart="${mydisk}1"
   swappart="${mydisk}2"
