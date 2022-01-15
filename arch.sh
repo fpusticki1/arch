@@ -56,23 +56,20 @@ read -p "This operation will erase the disk!!!
 read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
 if [ "${confirm}" = "YES" ]; then
-	for n in ${mydisk}* ; do umount $n ; done
-	for n in ${mydisk}* ; do swapoff $n ; done
-	wipefs --all --force ${mydisk}
-	read -p "*** Press Enter to continue..." continue
+  for n in ${mydisk}* ; do umount $n ; done
+  for n in ${mydisk}* ; do swapoff $n ; done
+  (echo g; echo w) | fdisk ${mydisk} #delete all partitions!
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
-  read -p "*** Press Enter to continue..." continue
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
-  read -p "*** Press Enter to continue..." continue
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk} #root partition
   read -p "*** Press Enter to continue..." continue
   bootpart="${mydisk}1"
   swappart="${mydisk}2"
   rootpart="${mydisk}3"
 else
-	echo "***** Exiting installation script... *****"
-	sleep 5
-	exit 0
+  echo "***** Exiting installation script... *****"
+  sleep 5
+  exit 0
 fi
 
 #PARTITION FORMATTING
@@ -80,7 +77,6 @@ echo "Formatting partitions..." && sleep 1
 mkfs.ext4 ${rootpart}
 mkswap ${swappart}
 mkfs.fat -F 32 ${bootpart}
-read -p "*** Press Enter to continue..." continue
 
 #MOUNTING FILESYSTEMS
 echo "Mounting filesystems..." && sleep 1
