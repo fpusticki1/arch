@@ -54,10 +54,15 @@ read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
 if [ "${confirm}" = "YES" ]; then
   for n in ${mydisk}* ; do umount $n ; done
+  sleep 2
   for n in ${mydisk}* ; do swapoff $n ; done
+  sleep 2
   wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
+  sleep 2
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk} #boot partition
+  sleep 5
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk} #swap partition
+  sleep 5
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk} #root partition
   read -p "*** Disk erased and partitions created. Press Enter to continue..." continue
   bootpart="${mydisk}1"
@@ -73,12 +78,14 @@ fi
 mkfs.ext4 ${rootpart}
 mkswap ${swappart}
 mkfs.fat -F 32 ${bootpart}
+sleep 2
 
 #MOUNTING FILESYSTEMS
 mount ${rootpart} /mnt
 swapon ${swappart}
 mkdir /mnt/boot
 mount ${bootpart} /mnt/boot
+sleep 2
 
 #SHOW CREATED PARTITIONS
 echo
