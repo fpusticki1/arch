@@ -103,16 +103,12 @@ read -p "Please check your new partitions and mount points.
 
 #BASE SYSTEM INSTALL
 pacstrap /mnt base base-devel linux linux-firmware \
-dosfstools f2fs-tools man-db man-pages nano git \
+dosfstools f2fs-tools man-db man-pages nano git zsh \
 networkmanager networkmanager-openvpn openresolv
 (echo systemctl enable NetworkManager) | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
 
-#INSTALL YAY
-(echo "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si") | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
 
 ### Gnome, xorg, 
 
@@ -132,7 +128,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 (echo hwclock --systohc) | arch-chroot /mnt
 (echo systemctl enable systemd-timesyncd) | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #USER ACCOUNTS
 (echo "(echo ${mypassword}; echo ${mypassword}) | passwd root") | arch-chroot /mnt
@@ -141,7 +137,7 @@ read -p "*** Press Enter to continue..." continue ###############
 (echo usermod -c \"${myname}\" ${myuser}) | arch-chroot /mnt
 sed -i '/%wheel ALL=(ALL) NOPASSWD: ALL/s/^#//' /mnt/etc/sudoers
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 # LOCALE AND KEYMAP
 echo "en_US.UTF-8 UTF-8
@@ -159,7 +155,7 @@ LC_TELEPHONE=hr_HR.UTF-8
 LC_TIME=hr_HR.UTF-8" > /mnt/etc/locale.conf
 (echo localectl set-keymap --no-convert croat) | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #NETWORK
 echo "${myhostname}" > /mnt/etc/hostname
@@ -167,7 +163,12 @@ echo "127.0.0.1  localhost
 ::1        localhost
 127.0.1.1  ${myhostname}" >> /mnt/etc/hosts
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
+
+#INSTALL YAY
+(echo "sudo -u ${myuser} git clone https://aur.archlinux.org/yay.git && cd yay && sudo -u ${myuser} makepkg -si") | arch-chroot /mnt
+
+pause 10
 
 #PACMAN CONFIGURATION
 echo "Server = http://mirror.luzea.de/archlinux/\$repo/os/\$arch
@@ -180,7 +181,7 @@ sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
 (echo sudo -u ${myuser} yay --save --answerdiff None) | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 # --------------------------------
 echo "#!/bin/bash
@@ -188,7 +189,7 @@ rm -rf /var/cache/pacman/pkg/{,.[!.],..?}* /home/${myuser}/.cache/yay/{,.[!.],..
 exit 0" > /mnt/usr/local/cleancache.sh 
 chmod +x /mnt/usr/local/cleancache.sh
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 # --------------------------------
 echo "[Trigger]
@@ -202,7 +203,7 @@ Description = Cleaning cache...
 When = PostTransaction
 Exec = /usr/local/cleancache.sh " > /mnt/usr/share/libalpm/hooks/cleancache.hook
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 # --------------------------------
 echo "#!/bin/bash
@@ -212,7 +213,7 @@ fi
 exit 0" > /mnt/usr/local/checkupdates.sh
 chmod +x /mnt/usr/local/checkupdates.sh
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #---------------------------------
 (echo sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user) | arch-chroot /mnt
@@ -224,7 +225,7 @@ ExecStart=/usr/local/checkupdates.sh
 [Install]
 RequiredBy=default.target" > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #----------------------------------
 echo "[Unit]
@@ -234,14 +235,14 @@ OnBootSec=15sec
 [Install]
 WantedBy=timers.target" > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #INITRAMFS
 sed -i 's/^HOOKS=(base udev.*/HOOKS=(base systemd autodetect modconf block filesystems keyboard fsck)/g' /mnt/etc/mkinitcpio.conf
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 (echo mkinitcpio -P) | arch-chroot /mnt
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #BOOTLOADER
 (echo bootctl install) | arch-chroot /mnt
@@ -253,7 +254,7 @@ initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
 options root=${rootpart} rw quiet splash" > /mnt/boot/loader/entries/arch.conf
 
-read -p "*** Press Enter to continue..." continue ###############
+pause 10
 
 #CLEAN ORPHAN PACKAGES
 (echo "if [[ \$(pacman -Qqdt) ]]; then
@@ -263,5 +264,6 @@ fi") | arch-chroot /mnt
   sudo -u ${myuser} yay -Rsc --noconfirm \$(sudo -u ${myuser} yay -Qqdt)
 fi") | arch-chroot /mnt
 
+pause 10
 
 exit 0
