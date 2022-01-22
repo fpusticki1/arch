@@ -23,7 +23,7 @@ dosfstools f2fs-tools man-db man-pages nano git zsh \
 networkmanager networkmanager-openvpn openresolv
 (echo systemctl enable NetworkManager) | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #USER ACCOUNTS
 (echo "(echo ${mypassword}; echo ${mypassword}) | passwd root") | arch-chroot /mnt
@@ -32,12 +32,12 @@ read -p "Press enter to continue"
 (echo usermod -c \"${myname}\" ${myuser}) | arch-chroot /mnt
 sed -i '/%wheel ALL=(ALL) NOPASSWD: ALL/s/^#//' /mnt/etc/sudoers
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #INSTALL YAY
 (echo "sudo -u ${myuser} git clone https://aur.archlinux.org/yay.git && cd yay && sudo -u ${myuser} makepkg -si") | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #PACMAN CONFIGURATION
 echo "Server = http://mirror.luzea.de/archlinux/\$repo/os/\$arch
@@ -50,7 +50,7 @@ sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
 (echo sudo -u ${myuser} yay --save --answerdiff None) | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 # --------------------------------
 echo "#!/bin/bash
@@ -58,7 +58,7 @@ rm -rf /var/cache/pacman/pkg/{,.[!.],..?}* /home/${myuser}/.cache/yay/{,.[!.],..
 exit 0" > /mnt/usr/local/cleancache.sh 
 chmod +x /mnt/usr/local/cleancache.sh
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 # --------------------------------
 echo "[Trigger]
@@ -72,7 +72,7 @@ Description = Cleaning cache...
 When = PostTransaction
 Exec = /usr/local/cleancache.sh " > /mnt/usr/share/libalpm/hooks/cleancache.hook
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 # --------------------------------
 echo "#!/bin/bash
@@ -82,7 +82,7 @@ fi
 exit 0" > /mnt/usr/local/checkupdates.sh
 chmod +x /mnt/usr/local/checkupdates.sh
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #---------------------------------
 (echo sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user) | arch-chroot /mnt
@@ -94,7 +94,7 @@ ExecStart=/usr/local/checkupdates.sh
 [Install]
 RequiredBy=default.target" > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #----------------------------------
 echo "[Unit]
@@ -104,7 +104,7 @@ OnBootSec=15sec
 [Install]
 WantedBy=timers.target" > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 ### Gnome, xorg, 
 
@@ -122,7 +122,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 (echo hwclock --systohc) | arch-chroot /mnt
 (echo systemctl enable systemd-timesyncd) | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 
 
@@ -145,7 +145,7 @@ LC_TIME=hr_HR.UTF-8" > /mnt/etc/locale.conf
 (echo localectl set-keymap --no-convert croat) | arch-chroot /mnt
 (echo localectl set-x11-keymap --no-convert hr) | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #NETWORK
 echo "${myhostname}" > /mnt/etc/hostname
@@ -153,7 +153,7 @@ echo "127.0.0.1  localhost
 ::1        localhost
 127.0.1.1  ${myhostname}" >> /mnt/etc/hosts
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 
 
@@ -166,7 +166,7 @@ sed -i 's/^HOOKS=(base udev.*/HOOKS=(base systemd autodetect modconf block files
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 (echo mkinitcpio -P) | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #BOOTLOADER
 (echo bootctl install) | arch-chroot /mnt
@@ -178,7 +178,7 @@ initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
 options root=${rootpart} rw quiet splash" > /mnt/boot/loader/entries/arch.conf
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 #CLEAN ORPHAN PACKAGES
 (echo "if [[ \$(pacman -Qqdt) ]]; then
@@ -188,6 +188,6 @@ fi") | arch-chroot /mnt
   sudo -u ${myuser} yay -Rsc --noconfirm \$(sudo -u ${myuser} yay -Qqdt)
 fi") | arch-chroot /mnt
 
-read -p "Press enter to continue"
+read -n 1 -p "Press enter to continue"
 
 exit 0
