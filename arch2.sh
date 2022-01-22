@@ -3,6 +3,16 @@
 # Arch Linux Installer by: Franjo Pusticki
 # ------------------------------------------------------------------------------
 
+#USER INPUTS
+echo "***************************************************"
+read -p "*** Enter your full name: " myname
+read -p "*** Enter username: " myuser
+read -p "*** Enter password: " mypassword
+read -p "*** Enter hostname: " myhostname
+read -p "*** AMD or Intel CPU? (amd/intel): " mycpu
+read -p "*** Connect to wifi? (y/n): " wifi
+
+
 ###-----------------------------------------------------------------------------
 ### PART 2: BASE SYSTEM INSTALLATION -------------------------------------------
 ###-----------------------------------------------------------------------------
