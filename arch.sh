@@ -58,6 +58,7 @@ read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
 if [ "${confirm}" = "YES" ]; then
   for n in ${mydisk}* ; do umount $n ; done
+  sleep 10
   for n in ${mydisk}* ; do swapoff $n ; done
   sleep 10
   wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
@@ -87,7 +88,7 @@ sleep 10
 #MOUNTING FILESYSTEMS
 mount ${rootpart} /mnt
 swapon ${swappart}
-mkdir -p /mnt/boot
+mkdir /mnt/boot
 mount ${bootpart} /mnt/boot
 
 sleep 10
@@ -120,8 +121,6 @@ arch-chroot /mnt /bin/bash << EOF
 systemctl enable NetworkManager
 EOF
 
-sleep 10
-
 #USER ACCOUNTS
 arch-chroot /mnt /bin/bash << EOF
 useradd -m -G wheel -s /usr/bin/zsh ${myuser}
@@ -139,11 +138,10 @@ cd /opt
 git clone https://aur.archlinux.org/yay.git
 chown -R ${myuser}:${myuser} yay
 cd yay
-sudo -u ${myuser} makepkg -si
+sudo -u ${myuser} makepkg -si --noconfirm
 EOF
 
 sleep 10
-
 
 ###-----------------------------------------------------------------------------
 ### PART 3: SYSTEM CONFIGURATION -----------------------------------------------
@@ -161,7 +159,6 @@ Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://archlinux.iskon.hr/$repo/os/$arch
 EOF
 sleep 10
-
 # --------------------------------
 cat << EOF > /mnt/usr/local/cleancache.sh 
 #!/bin/bash
@@ -169,9 +166,7 @@ rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
 rm -rf /home/${myuser}/.cache/yay/{,.[!.],..?}*
 exit 0
 EOF
-
 sleep 10
-
 # --------------------------------
 cat << EOF > /mnt/usr/share/libalpm/hooks/cleancache.hook
 [Trigger]
@@ -185,9 +180,7 @@ Description = Cleaning cache...
 When = PostTransaction
 Exec = /usr/local/cleancache.sh
 EOF
-
 sleep 10
-
 # --------------------------------
 cat << 'EOF' > /mnt/usr/local/checkupdates.sh
 #!/bin/bash
@@ -196,9 +189,7 @@ if [[ $(pacman -Qu) || $(yay -Qu) ]]; then
 fi
 exit 0
 EOF
-
 sleep 10
-
 #---------------------------------
 arch-chroot /mnt /bin/bash << EOF
 sudo -u ${myuser} yay --save --answerdiff None
@@ -206,9 +197,7 @@ sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user
 chmod +x /usr/local/cleancache.sh
 chmod +x /usr/local/checkupdates.sh
 EOF
-
 sleep 10
-
 #---------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
 [Unit]
@@ -219,9 +208,7 @@ ExecStart=/usr/local/checkupdates.sh
 [Install]
 RequiredBy=default.target
 EOF
-
 sleep 10
-
 #----------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
@@ -231,9 +218,7 @@ OnBootSec=15sec
 [Install]
 WantedBy=timers.target
 EOF
-
 sleep 10
-
 #----------------------------------
 
 #FSTAB
@@ -253,6 +238,9 @@ cat << EOF > /mnt/etc/locale.gen
 en_US.UTF-8 UTF-8
 hr_HR.UTF-8 UTF-8
 EOF
+
+sleep 10
+
 cat << EOF > /mnt/etc/locale.conf
 LANG=en_US.UTF-8
 LC_ADDRESS=hr_HR.UTF-8
@@ -298,9 +286,22 @@ sleep 10
 
 #BOOTLOADER
 arch-chroot /mnt /bin/bash << EOF
-pacman -S grub
-grub-install --target=i386-pc /dev/vda
-grub-mkconfig -o /boot/grub/grub.cfg
+bootctl install
+systemctl enable systemd-boot-update
+EOF
+
+sleep 10
+
+cat << EOF > /mnt/boot/loader/loader.conf
+timeout 0
+default arch
+EOF
+cat << EOF > /mnt/boot/loader/entries/arch.conf
+title Arch Linux
+linux /vmlinuz-linux
+initrd /${mycpu}-ucode.img
+initrd /initramfs-linux.img
+options root=${rootpart} rw quiet splash
 EOF
 
 sleep 10
@@ -312,6 +313,8 @@ if [[ $(pacman -Qqdt) ]]; then
 fi
 EOF
 
+sleep 10
+
 arch-chroot /mnt /bin/bash << EOF
 if [[ \$(sudo -u ${myuser} yay -Qqdt) ]]; then
   sudo -u ${myuser} yay -Rsc --noconfirm \$(sudo -u ${myuser} yay -Qqdt)
@@ -320,70 +323,57 @@ EOF
 
 sleep 10
 
+
 ###-----------------------------------------------------------------------------
 ### PART 4: DESKTOP ENVIRONMENT INSTALLATION -----------------------------------
 ###-----------------------------------------------------------------------------
 
 #XORG
 arch-chroot /mnt /bin/bash << EOF
-pacman -S xorg-server xorg-apps
+pacman -S --noconfirm xorg-server xorg-apps
+sleep 10
 localectl set-x11-keymap --no-convert hr
 EOF
 
-echo "FINISHED...."
-exit 0
+sleep 10
 
 
 
-
-
-
-
-
-
-
-
+#DISPLAY DRIVER
+if [ "${mygpu}" = "intel" ]; then
+  arch-chroot /mnt /bin/bash <<- EOF
+  pacman -S --noconfirm xf86-video-intel mesa
+  EOF
+  sleep 10
+elif [ "${mygpu}" = "nvidia" ]; then
+  arch-chroot /mnt /bin/bash <<- EOF
+  pacman -S --noconfirm nvidia nvidia-utils
+  EOF
+  sleep 10
+else
+  sleep 1
+fi
 
 #DESKTOP ENVIRONMENT - GNOME
 arch-chroot /mnt /bin/bash << EOF
-pacman -S
-
-gnome-tweaks
-eog
-sushi
-  evince
-file-roller
-gnome-backgrounds
-gnome-calculator
-gnome-control-center
-  gnome-settings-daemon
-
-gdm
-  gnome-session
-  gnome-shell
-    mutter
-    gnome-disk-utility
-seahorse
-  gnome-keyring
-gnome-screenshot
-gnome-shell-extensions
-gnome-system-monitor
-gnome-terminal
-gvfs-mtp
-nautilus
-simple-scan
-xdg-user-dirs
-
+pacman -S --noconfirm gdm gnome-shell gnome-control-center \
+gnome-tweaks gnome-shell-extensions gnome-system-monitor \
+gnome-terminal gnome-calculator gnome-screenshot gnome-backgrounds \
+nautilus file-roller seahorse simple-scan xdg-user-dirs \
+gvfs-mtp sushi eog
+sleep 10
 systemctl enable gdm
 EOF
-
-
-
+sleep 10
+exit 0
 
 ###-----------------------------------------------------------------------------
 ### PART 5: APPS INSTALLATION --------------------------------------------------
 ###-----------------------------------------------------------------------------
 
+#PACMAN PACKAGES
+
+#AUR PACKAGES
 
 
 ###-----------------------------------------------------------------------------
