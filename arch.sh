@@ -24,7 +24,7 @@ fi
 read -p "*** Enter username: " myuser
 read -p "*** Enter password: " mypassword
 read -p "*** Enter hostname: " myhostname
-read -p "*** AMD or Intel CPU? (amd/intel): " mycpu
+read -p "*** Intel or AMD CPU? (intel/amd): " mycpu
 read -p "*** Intel, AMD or Nvidia GPU? (intel/amd/nvidia): " mygpu
 
 #SET TIME
@@ -91,7 +91,7 @@ dosfstools f2fs-tools man-db man-pages nano git zsh \
 networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
 
 #USER ACCOUNTS
-chroot /mnt /bin/bash << CHROOT
+arch-chroot /mnt /bin/bash << CHROOT
 useradd -m -G wheel -s /usr/bin/zsh ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd root
@@ -100,10 +100,160 @@ sed -i '/%wheel ALL=(ALL) NOPASSWD: ALL/s/^#//' /etc/sudoers
 CHROOT
 
 #INSTALL YAY
-chroot /mnt /bin/bash << CHROOT
+arch-chroot /mnt /bin/bash << CHROOT
 cd /opt
 git clone https://aur.archlinux.org/yay.git
 chown -R ${myuser}:${myuser} yay
 cd yay
 sudo -u ${myuser} makepkg -si --noconfirm
 CHROOT
+
+
+###-----------------------------------------------------------------------------
+### PART 3: SYSTEM CONFIGURATION -----------------------------------------------
+###-----------------------------------------------------------------------------
+
+#PACMAN CONFIGURATION
+sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
+sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
+sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
+cat << 'EOF' > /mnt/etc/pacman.d/mirrorlist
+Server = http://mirror.luzea.de/archlinux/$repo/os/$arch
+Server = http://arch.jensgutermuth.de/$repo/os/$arch
+Server = http://mirror.wtnet.de/arch/$repo/os/$arch
+Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
+Server = http://archlinux.iskon.hr/$repo/os/$arch
+EOF
+# --------------------------------
+cat << 'EOF' > /mnt/usr/local/checkupdates.sh
+#!/bin/bash
+# Clean cache
+rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
+rm -rf /home/${myuser}/.cache/yay/{,.[!.],..?}*
+# Check updates
+if [[ $(pacman -Qu) || $(yay -Qu) ]]; then
+  notify-send '*** UPDATES ***' 'New updates available...'
+fi
+exit 0
+EOF
+#---------------------------------
+cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
+[Unit]
+Description=Check Updates service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/checkupdates.sh
+[Install]
+RequiredBy=default.target
+EOF
+#----------------------------------
+cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
+[Unit]
+Description=Run checkupdates every boot
+[Timer]
+OnBootSec=15sec
+[Install]
+WantedBy=timers.target
+EOF
+#---------------------------------
+arch-chroot /mnt /bin/bash << CHROOT
+sudo -u ${myuser} yay --save --answerdiff None --removemake
+sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user
+chmod +x /usr/local/checkupdates.sh
+CHROOT
+#----------------------------------
+
+#FSTAB
+genfstab -U /mnt >> /mnt/etc/fstab
+
+#TIME ZONE
+arch-chroot /mnt /bin/bash << CHROOT
+ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
+hwclock --systohc
+CHROOT
+
+#LOCALE AND KEYMAP
+cat << EOF > /mnt/etc/locale.gen
+en_US.UTF-8 UTF-8
+hr_HR.UTF-8 UTF-8
+EOF
+arch-chroot /mnt /bin/bash << CHROOT
+locale-gen
+CHROOT
+cat << EOF > /mnt/etc/locale.conf
+LANG=en_US.UTF-8
+EOF
+cat << EOF > /mnt/etc/vconsole.conf
+KEYMAP=croat
+EOF
+
+#NETWORK
+cat << EOF > /mnt/etc/hostname
+${myhostname}
+EOF
+cat << EOF >> /mnt/etc/hosts
+127.0.0.1  localhost
+::1        localhost
+127.0.1.1  ${myhostname}
+EOF
+
+#INITRAMFS
+# ??? sed -i 's/^HOOKS=(base udev.*/HOOKS=(base systemd autodetect modconf block filesystems keyboard fsck)/g' /mnt/etc/mkinitcpio.conf
+sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
+arch-chroot /mnt /bin/bash << CHROOT
+mkinitcpio -P
+CHROOT
+
+#BOOTLOADER
+arch-chroot /mnt /bin/bash << CHROOT
+bootctl install
+CHROOT
+cat << EOF > /mnt/boot/loader/loader.conf
+timeout 0
+default arch
+EOF
+cat << EOF > /mnt/boot/loader/entries/arch.conf
+title Arch Linux
+linux /vmlinuz-linux
+initrd /${mycpu}-ucode.img
+initrd /initramfs-linux.img
+options root=${rootpart} rw quiet
+EOF
+
+###-----------------------------------------------------------------------------
+### PART 4: DESKTOP ENVIRONMENT INSTALLATION -----------------------------------
+###-----------------------------------------------------------------------------
+
+#XORG
+arch-chroot /mnt /bin/bash << CHROOT
+pacman -S --noconfirm xorg-server xorg-apps
+CHROOT
+
+#DISPLAY DRIVER
+if [ "${mygpu}" = "intel" ]; then
+  arch-chroot /mnt /bin/bash <<- CHROOT
+  pacman -S --noconfirm xf86-video-intel mesa
+CHROOT
+elif [ "${mygpu}" = "nvidia" ]; then
+  arch-chroot /mnt /bin/bash <<- CHROOT
+  pacman -S --noconfirm nvidia nvidia-utils
+CHROOT
+elif [ "${mygpu}" = "amd" ]; then
+  arch-chroot /mnt /bin/bash <<- CHROOT
+  pacman -S --noconfirm xf86-video-amdgpu mesa
+CHROOT
+else
+  sleep 1
+fi
+
+#DESKTOP ENVIRONMENT - GNOME
+arch-chroot /mnt /bin/bash << CHROOT
+pacman -S --noconfirm gdm gnome-shell gnome-control-center \
+gnome-tweaks gnome-shell-extensions gnome-system-monitor \
+gnome-terminal gnome-calculator gnome-screenshot gnome-backgrounds \
+nautilus file-roller seahorse simple-scan xdg-user-dirs \
+gvfs-mtp sushi eog
+CHROOT
+
+echo "FINIESHED..."
+exit 0
