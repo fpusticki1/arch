@@ -87,27 +87,17 @@ read -p "Please check your new partitions and mount points.
 
 #BASE SYSTEM INSTALL
 pacstrap /mnt base base-devel linux linux-firmware \
-dosfstools f2fs-tools man-db man-pages nano git zsh \
-networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
+dosfstools f2fs-tools man-db man-pages nano git \
+networkmanager ${mycpu}-ucode
 
 #USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
-useradd -m -G wheel -s /usr/bin/zsh ${myuser}
+useradd -m -G wheel ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd root
 usermod -c "${myname}" ${myuser}
 sed -i '/%wheel ALL=(ALL) NOPASSWD: ALL/s/^#//' /etc/sudoers
 CHROOT
-
-#INSTALL YAY
-arch-chroot /mnt /bin/bash << CHROOT
-cd /opt
-git clone https://aur.archlinux.org/yay.git
-chown -R ${myuser}:${myuser} yay
-cd yay
-sudo -u ${myuser} makepkg -si --noconfirm
-CHROOT
-
 
 ###-----------------------------------------------------------------------------
 ### PART 3: SYSTEM CONFIGURATION -----------------------------------------------
@@ -125,42 +115,6 @@ Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://archlinux.iskon.hr/$repo/os/$arch
 EOF
 # --------------------------------
-cat << 'EOF' > /mnt/usr/local/checkupdates.sh
-#!/bin/bash
-# Clean cache
-rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
-rm -rf /home/${myuser}/.cache/yay/{,.[!.],..?}*
-# Check updates
-if [[ $(pacman -Qu) || $(yay -Qu) ]]; then
-  notify-send '*** UPDATES ***' 'New updates available...'
-fi
-exit 0
-EOF
-#---------------------------------
-cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
-[Unit]
-Description=Check Updates service
-[Service]
-Type=oneshot
-ExecStart=/usr/local/checkupdates.sh
-[Install]
-RequiredBy=default.target
-EOF
-#----------------------------------
-cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
-[Unit]
-Description=Run checkupdates every boot
-[Timer]
-OnBootSec=15sec
-[Install]
-WantedBy=timers.target
-EOF
-#---------------------------------
-arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} yay --save --answerdiff None --removemake
-sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user
-chmod +x /usr/local/checkupdates.sh
-CHROOT
 #----------------------------------
 
 #FSTAB
