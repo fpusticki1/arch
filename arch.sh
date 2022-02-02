@@ -93,11 +93,11 @@ networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
 
 #USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
-useradd -m -G wheel -s /usr/bin/zsh ${myuser}
+useradd -m -s /usr/bin/zsh ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd root
 usermod -c "${myname}" ${myuser}
-sed -i '/%wheel ALL=(ALL) NOPASSWD: ALL/s/^#//' /etc/sudoers
+echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 CHROOT
 
 #INSTALL YAY
@@ -220,29 +220,4 @@ initrd /initramfs-linux.img
 options root=${rootpart} rw quiet nowatchdog fsck.mode=skip
 EOF
 
-
-###-----------------------------------------------------------------------------
-### PART 4: DESKTOP ENVIRONMENT INSTALLATION -----------------------------------
-###-----------------------------------------------------------------------------
-
-#XORG
-arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm xorg-server xorg-apps
-CHROOT
-
-#DISPLAY DRIVER
-if [ "${mygpu}" = "intel" ]; then
-  arch-chroot /mnt /bin/bash <<- CHROOT
-  pacman -S --needed --noconfirm xf86-video-intel mesa
-CHROOT
-elif [ "${mygpu}" = "nvidia" ]; then
-  arch-chroot /mnt /bin/bash <<- CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils
-CHROOT
-elif [ "${mygpu}" = "amd" ]; then
-  arch-chroot /mnt /bin/bash <<- CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
-CHROOT
-else
-  sleep 1
-fi
+exit 0
