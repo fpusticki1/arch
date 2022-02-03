@@ -21,20 +21,20 @@ if [ "${ifname}" = "y" ]; then
 else
   read -p "*** Enter your full name: " myname
 fi
-myuser="fpusticki"
-mypassword="fpusticki"
-myhostname="archlinux"
-iflaptop="laptop"
-mycpu="amd"
-mygpu="amd"
-winfonts="n"
-nth="y"
-thund="y"
-print="y"
-torr="y"
-plex="n"
-pycharm="n"
-games="y"
+read -p "*** Enter username: " myuser
+read -p "*** Enter password: " mypassword
+read -p "*** Enter hostname: " myhostname
+read -p "*** Is this a laptop or pc? (laptop/PC): " iflaptop
+read -p "*** Intel or AMD CPU? (intel/amd): " mycpu
+read -p "*** Intel, AMD or Nvidia GPU? (intel/amd/nvidia): " mygpu
+read -p "*** Install Windows fonts? (y/N): " winfonts
+read -p "*** Install NTH apps? (y/N): " nth
+read -p "*** Install Thunderbird? (y/N): " thund
+read -p "*** Install Printer support? (y/N): " print
+read -p "*** Install Torrent support? (y/N): " torr
+read -p "*** Install Plex media server? (y/N): " plex
+read -p "*** Install Pycharm? (y/N): " pycharm
+read -p "*** Install Steam for games? (y/N): " games
 
 #SET TIME
 timedatectl set-timezone Europe/Zagreb
@@ -253,16 +253,15 @@ CHROOT
 #DISPLAY DRIVER
 if [ "${mygpu}" = "intel" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-intel mesa lib32-mesa vulkan-intel lib32-vulkan-intel
+  pacman -S --needed --noconfirm xf86-video-intel mesa
 CHROOT
 elif [ "${mygpu}" = "nvidia" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
+  pacman -S --needed --noconfirm nvidia nvidia-utils
 CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu
-  sudo -u ${myuser} yay -S amdgpu-pro-libgl lib32-amdgpu-pro-libgl vulkan-amdgpu-pro lib32-vulkan-amdgpu-pro
+  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
 CHROOT
 else
   sleep 1
@@ -367,11 +366,6 @@ sudo -u ${myuser} yay -S --needed --noconfirm sublime-text-4 \
 google-chrome yaru-icon-theme
 CHROOT
 
-
-exit 0
-
-
-
 #NTH APPS
 if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
@@ -466,18 +460,22 @@ echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-swappiness.conf
 #DISABLE WAYLAND
 sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
-#PLANK THEME, WALLPAPER ETC
+#PLANK THEME, WALLPAPER
 arch-chroot /mnt /bin/bash << CHROOT
 mkdir /home/${myuser}/temp
 cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mojave.jpg
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mountain.jpg
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
 chmod +x *
 cp dock.theme /usr/share/plank/themes/Default
 cp Mojave.jpg /usr/share/backgrounds
+cp Mountain.jpg /usr/share/backgrounds
+cp 2dwall.jpg /usr/share/backgrounds
 cp kbd_shortcuts.zip /home/${myuser}
 cp App_screen.png /home/${myuser}
 cp mysql_conn.zip /home/${myuser}
