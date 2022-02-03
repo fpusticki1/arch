@@ -1,11 +1,10 @@
 #!/bin/bash
 
-set -e
-
 echo "####################################################"
 echo "##### Welcome to the Arch installation script. #####"
 echo "####################################################"
 echo && sleep 1
+
 
 ###-----------------------------------------------------------------------------
 ### PART 1: BASIC CONFIGURATION ------------------------------------------------
@@ -41,8 +40,6 @@ read -p "*** Install Steam for games? (y/N): " games
 timedatectl set-timezone Europe/Zagreb
 timedatectl set-ntp true
 
-sleep 3
-
 #DISK PARTITIONING
 echo
 echo "*****************  Listing Disk drives  *****************"
@@ -57,17 +54,11 @@ read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
 if [ "${confirm}" = "YES" ]; then
   for n in ${mydisk}* ; do umount $n ; done
-  sleep 3
   for n in ${mydisk}* ; do swapoff $n ; done
-  sleep 3
   wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
-  sleep 3
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk}
-  sleep 3
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk}
-  sleep 3
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk}
-  sleep 3
   bootpart="${mydisk}1"
   swappart="${mydisk}2"
   rootpart="${mydisk}3"
@@ -77,23 +68,19 @@ else
   exit 0
 fi
 
+#EXIT ON ERROR
+set -e
+
 #PARTITION FORMATTING
 mkfs.ext4 ${rootpart}
-sleep 3
 mkswap ${swappart}
-sleep 3
 mkfs.fat -F 32 ${bootpart}
-sleep 3
 
 #MOUNTING FILESYSTEMS
 mount ${rootpart} /mnt
-sleep 3
 swapon ${swappart}
-sleep 3
 mkdir /mnt/boot
-sleep 3
 mount ${bootpart} /mnt/boot
-sleep 3
 
 #SHOW CREATED PARTITIONS
 echo
@@ -115,32 +102,23 @@ pacstrap /mnt base base-devel linux linux-firmware \
 dosfstools f2fs-tools man-db man-pages nano git zsh \
 networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
 
-sleep 3
 #USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
 useradd -m -s /usr/bin/zsh ${myuser}
-sleep 3
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
-sleep 3
 (echo ${mypassword}; echo ${mypassword}) | passwd root
-sleep 3
 usermod -c "${myname}" ${myuser}
-sleep 3
 echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
-sleep 3
+chmod -R 755 /home/${myuser}
 CHROOT
 
 #INSTALL YAY
 arch-chroot /mnt /bin/bash << CHROOT
 cd /opt
-sleep 3
 git clone https://aur.archlinux.org/yay.git
-sleep 3
 chown -R ${myuser}:${myuser} yay
-sleep 3
 cd yay
 sudo -u ${myuser} makepkg -si --noconfirm
-sleep 3
 CHROOT
 
 
@@ -152,7 +130,6 @@ CHROOT
 sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
 sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
-sleep 3
 cat << 'EOF' > /mnt/etc/pacman.d/mirrorlist
 Server = http://mirror.luzea.de/archlinux/$repo/os/$arch
 Server = http://arch.jensgutermuth.de/$repo/os/$arch
@@ -160,7 +137,6 @@ Server = http://mirror.wtnet.de/arch/$repo/os/$arch
 Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://archlinux.iskon.hr/$repo/os/$arch
 EOF
-sleep 3
 # --------------------------------
 cat << EOF > /mnt/usr/local/checkupdates.sh
 #!/bin/bash
@@ -173,15 +149,13 @@ if [[ \$(pacman -Qu) || \$(yay -Qu) ]]; then
 fi
 exit 0
 EOF
-sleep 3
 #---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} yay --save --answerdiff None --removemake
-sleep 3
 sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user
-sleep 3
+sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
+sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/timers.target.wants
 chmod +x /usr/local/checkupdates.sh
-sleep 3
 CHROOT
 #----------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
@@ -193,7 +167,9 @@ ExecStart=/usr/local/checkupdates.sh
 [Install]
 RequiredBy=default.target
 EOF
-sleep 3
+#arch-chroot /mnt /bin/bash << CHROOT
+#sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.service /home/${myuser}/.config/systemd/user/default.target.requires
+#CHROOT
 #----------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
@@ -203,18 +179,18 @@ OnBootSec=15sec
 [Install]
 WantedBy=timers.target
 EOF
-sleep 3
+arch-chroot /mnt /bin/bash << CHROOT
+sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.timer /home/${myuser}/.config/systemd/user/timers.target.wants
+CHROOT
 #---------------------------------
 
 #FSTAB
 genfstab -U /mnt >> /mnt/etc/fstab
-sleep 3
 
 #TIME ZONE
 arch-chroot /mnt /bin/bash << CHROOT
 ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
 hwclock --systohc
-sleep 3
 CHROOT
 
 #LOCALE AND KEYMAP
@@ -222,19 +198,15 @@ cat << EOF > /mnt/etc/locale.gen
 en_US.UTF-8 UTF-8
 hr_HR.UTF-8 UTF-8
 EOF
-sleep 3
 arch-chroot /mnt /bin/bash << CHROOT
 locale-gen
-sleep 3
 CHROOT
 cat << EOF > /mnt/etc/locale.conf
 LANG=en_US.UTF-8
 EOF
-sleep 3
 cat << EOF > /mnt/etc/vconsole.conf
 KEYMAP=croat
 EOF
-sleep 3
 
 #NETWORK
 cat << EOF > /mnt/etc/hostname
@@ -245,25 +217,21 @@ cat << EOF >> /mnt/etc/hosts
 ::1        localhost
 127.0.1.1  ${myhostname}
 EOF
-sleep 3
 
 #INITRAMFS
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt /bin/bash << CHROOT
 mkinitcpio -P
 CHROOT
-sleep 3
 
 #BOOTLOADER
 arch-chroot /mnt /bin/bash << CHROOT
 bootctl install
 CHROOT
-sleep 3
 cat << EOF > /mnt/boot/loader/loader.conf
 timeout 0
 default arch
 EOF
-sleep 3
 cat << EOF > /mnt/boot/loader/entries/arch.conf
 title Arch Linux
 linux /vmlinuz-linux
@@ -271,7 +239,6 @@ initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
 options root=${rootpart} rw quiet nowatchdog fsck.mode=skip
 EOF
-sleep 3
 
 
 ###-----------------------------------------------------------------------------
@@ -282,31 +249,29 @@ sleep 3
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm xorg-server xorg-apps
 CHROOT
-sleep 3
 
 #DISPLAY DRIVER
 if [ "${mygpu}" = "intel" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-intel mesa
+  pacman -S --needed --noconfirm xf86-video-intel mesa lib32-mesa vulkan-intel lib32-vulkan-intel
 CHROOT
 elif [ "${mygpu}" = "nvidia" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia
+  pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
 CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
+  pacman -S --needed --noconfirm xf86-video-amdgpu
+  sudo -u ${myuser} yay -S amdgpu-pro-libgl lib32-amdgpu-pro-libgl vulkan-amdgpu-pro lib32-vulkan-amdgpu-pro
 CHROOT
 else
   sleep 1
 fi
-sleep 3
 
 #PIPEWIRE
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm wireplumber pipewire-jack pipewire-pulse
 CHROOT
-sleep 3
 
 #DESKTOP ENVIRONMENT - GNOME
 arch-chroot /mnt /bin/bash << CHROOT
@@ -315,30 +280,21 @@ gnome-tweaks gnome-shell-extensions gnome-system-monitor gvfs-mtp \
 gnome-terminal gnome-calculator gnome-screenshot gnome-backgrounds \
 nautilus file-roller seahorse simple-scan xdg-user-dirs sushi eog
 CHROOT
-sleep 3
 
 #ENABLE SERVICES
 arch-chroot /mnt /bin/bash << CHROOT
 systemctl enable NetworkManager
-sleep 3
 systemctl enable systemd-timesyncd
-sleep 3
 systemctl enable systemd-boot-update
-sleep 3
 systemctl enable gdm
-sleep 3
 CHROOT
 
 #DISABLE SERVICES
 arch-chroot /mnt /bin/bash << CHROOT
 systemctl disable lvm2-monitor
-sleep 3
 systemctl mask lvm2-monitor
-sleep 3
 systemctl disable ldconfig
-sleep 3
 systemctl mask ldconfig
-sleep 3
 CHROOT
 
 #LAPTOP POWER SETTINGS
@@ -349,15 +305,12 @@ if [ "${iflaptop}" = "laptop" ]; then
 CHROOT
 fi
 
-sleep 3
-
 #JAVA -----------------------
 #export JAVA_TOOL_OPTIONS='-Dawt.useSystemAAFontSettings=on -Dswing.aatext=true'
 #echo "JAVA_FONTS=/usr/share/fonts/TTF" >> /etc/environment
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm jdk-openjdk
 archlinux-java fix
-sleep 3
 CHROOT
 
 #FONTS
@@ -365,13 +318,11 @@ arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm ttf-dejavu ttf-liberation \
 ttf-hack ttf-ubuntu-font-family
 CHROOT
-sleep 3
 if [ "${winfonts}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   sudo -u ${myuser} yay -S --needed --noconfirm ttf-ms-win10-auto
 CHROOT
 fi
-sleep 3
 cat << EOF > /mnt/etc/fonts/local.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
@@ -398,7 +349,6 @@ cat << EOF > /mnt/etc/fonts/local.conf
   </match>
 </fontconfig>
 EOF
-sleep 3
 
 
 ###-----------------------------------------------------------------------------
@@ -410,37 +360,42 @@ arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm unrar p7zip htop neofetch wget \
 mlocate net-tools plank vlc firefox libreoffice-still
 CHROOT
-sleep 3
 
 #AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} yay -S --needed --noconfirm sublime-text-4 \
 google-chrome yaru-icon-theme
 CHROOT
-sleep 3
 
 
-#--------------------- TODO --------------------
+exit 0
+
+
+
 #NTH APPS
 if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
   sudo -u ${myuser} yay -S --needed --noconfirm skypeforlinux-stable-bin \
-  zoom termius-app postman-bin
-
-
-  #ZOIPER
-  #Files/APPS/Zoiper_3.3_Linux_Free_64Bit.run
-  #VPN
-  #cp -R Files/OpenVPN/ /usr/local/
-  #SECT STUDIO
-  #cp -R Files/Sect_Studio/ /usr/local/
-  #cp Files/Sect_Studio/Studio.desktop /usr/share/applications
-  #cp Files/Sect_Studio/SMS_tester.desktop /usr/share/applications
-  #chown -R ${myuser}:${myuser} /usr/local/Sect_Studio
+  zoom postman-bin
+  mkdir /home/${myuser}/temp
+  cd /home/${myuser}/temp
+  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
+  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/OpenVPN.zip
+  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Sect_Studio.zip
+  chmod +x *
+  yes | Zoiper_3.3_Linux_Free_64Bit.run
+  unzip OpenVPN.zip
+  cp -R OpenVPN/ /usr/local/
+  unzip Sect_Studio.zip
+  cp -R Sect_Studio/ /usr/local/
+  cp Sect_Studio/Studio.desktop /usr/share/applications
+  cp Sect_Studio/SMS_tester.desktop /usr/share/applications
+  chown -R ${myuser}:${myuser} /usr/local/Sect_Studio
+  cd
+  rm -rf /home/${myuser}/temp
 CHROOT
 fi
-sleep 3
 
 #THUNDERBIRD
 if [ "${thund}" = "y" ]; then
@@ -448,19 +403,15 @@ if [ "${thund}" = "y" ]; then
   pacman -S --needed --noconfirm thunderbird
 CHROOT
 fi
-sleep 3
 
 #PRINTER SUPPORT
 if [ "${print}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm cups ghostscript gutenprint
-  sleep 3
+  pacman -S --needed --noconfirm cups gutenprint
   systemctl enable cups.socket
-  sleep 3
+  mkdir -p /home/${myuser}/.local/share/applications
   cp /usr/share/applications/cups.desktop /home/${myuser}/.local/share/applications
-  sleep 3
   sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/cups.desktop
-  sleep 3
 CHROOT
 fi
 
@@ -470,17 +421,12 @@ if [ "${torr}" = "y" ]; then
   pacman -S --needed --noconfirm fragments
 CHROOT
 fi
-sleep 3
 
 #PLEX
 if [ "${plex}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   sudo -u ${myuser} yay -S --needed --noconfirm plex-media-server
-  sleep 3
   systemctl enable plexmediaserver
-  sleep 3
-  chmod -R 755 /home/${myuser}
-  sleep 3
 CHROOT
 fi
 
@@ -488,72 +434,53 @@ fi
 if [ "${pycharm}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   sudo -u ${myuser} yay -S --needed --noconfirm pycharm-professional
-  sleep 3
   pacman -S --needed --noconfirm python-pip
-  sleep 3
 CHROOT
 fi
 
 #STEAM
 if [ "${games}" = "y" ]; then
+  cat << EOF >> /mnt/etc/pacman.conf
+
+  [multilib]
+  Include = /etc/pacman.d/mirrorlist
+EOF
   arch-chroot /mnt /bin/bash << CHROOT
+  pacman -Syu --noconfirm
   pacman -S --needed --noconfirm steam
 CHROOT
 fi
-sleep 3
 
 
 ###-----------------------------------------------------------------------------
 ### PART 6: POST INSTALL TWEAKS ------------------------------------------------
 ###-----------------------------------------------------------------------------
 
-
-exit 0
-
-
-
-
-
 #JOURNAL DISABLE
 sed -i 's/#Storage=auto/Storage=none/g' /mnt/etc/systemd/journald.conf
 rm -rf /mnt/var/log/journal/
 
-# ---------------- todo investigate ---------------
 #SWAPPINESS
-echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-manjaro.conf
+echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-swappiness.conf
 
 #DISABLE WAYLAND
 sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
-#BOOTLOADER
-# quiet nmi_watchdog=0 nowatchdog udev.log_priority=3
-echo "blacklist iTCO_wdt 
-blacklist iTCO_vendor_support" > /mnt/etc/modprobe.d/watchdog.conf
-
-#PLANK THEME
-cp -R Files/Themes/Frenky/ /mnt/usr/share/plank/themes/
-
-#SHUTDOWN TIME LIMIT
-sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/system.conf
-rm -rf Files
-
-
-
-cat << EOF > FILE
-EOF
-
+#PLANK THEME, WALLPAPER ETC
 arch-chroot /mnt /bin/bash << CHROOT
+mkdir /home/${myuser}/temp
+cd /home/${myuser}/temp
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mojave.jpg
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
+chmod +x *
+cp dock.theme /usr/share/plank/themes/Default
+cp Mojave.jpg /usr/share/backgrounds
+cp kbd_shortcuts.zip /home/${myuser}
+cp App_screen.png /home/${myuser}
+cp mysql_conn.zip /home/${myuser}
+cd
+rm -rf /home/${myuser}/temp
 CHROOT
-
-
-
-#--------------------------------------------------------------------------
-#FINISH INSTALLATION
-umount -a
-read -p "***********************************
-***** Installation completed! *****
-***********************************
-
-*** Press any key to finish and reboot..." rbt
-reboot
-exit 0
