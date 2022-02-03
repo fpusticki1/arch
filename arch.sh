@@ -21,20 +21,20 @@ if [ "${ifname}" = "y" ]; then
 else
   read -p "*** Enter your full name: " myname
 fi
-read -p "*** Enter username: " myuser
-read -p "*** Enter password: " mypassword
-read -p "*** Enter hostname: " myhostname
-read -p "*** Is this a laptop or pc? (laptop/PC): " iflaptop
-read -p "*** Intel or AMD CPU? (intel/amd): " mycpu
-read -p "*** Intel, AMD or Nvidia GPU? (intel/amd/nvidia): " mygpu
-read -p "*** Install Windows fonts? (y/N): " winfonts
-read -p "*** Install NTH apps? (y/N): " nth
-read -p "*** Install Thunderbird? (y/N): " thund
-read -p "*** Install Printer support? (y/N): " print
-read -p "*** Install Torrent support? (y/N): " torr
-read -p "*** Install Plex media server? (y/N): " plex
-read -p "*** Install Pycharm? (y/N): " pycharm
-read -p "*** Install Steam for games? (y/N): " games
+myuser="fpusticki"
+mypassword="fpusticki"
+myhostname="archlinux"
+iflaptop="laptop"
+mycpu="amd"
+mygpu="amd"
+winfonts="n"
+nth="y"
+thund="y"
+print="y"
+torr="y"
+plex="n"
+pycharm="n"
+games="y"
 
 #SET TIME
 timedatectl set-timezone Europe/Zagreb
