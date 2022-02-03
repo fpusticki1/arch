@@ -54,11 +54,17 @@ read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
 if [ "${confirm}" = "YES" ]; then
   for n in ${mydisk}* ; do umount $n ; done
+  sleep 1
   for n in ${mydisk}* ; do swapoff $n ; done
+  sleep 1
   wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
+  sleep 1
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk}
+  sleep 1
   (echo n; echo; echo; echo +4G; echo t; echo; echo 19; echo w) | fdisk ${mydisk}
+  sleep 1
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk}
+  sleep 1
   bootpart="${mydisk}1"
   swappart="${mydisk}2"
   rootpart="${mydisk}3"
@@ -152,6 +158,7 @@ EOF
 #---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} yay --save --answerdiff None --removemake
+sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
 sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/timers.target.wants
 chmod +x /usr/local/checkupdates.sh
 CHROOT
@@ -159,26 +166,28 @@ CHROOT
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
 [Unit]
 Description=Check Updates service
+
 [Service]
 Type=oneshot
 ExecStart=/usr/local/checkupdates.sh
+
 [Install]
 RequiredBy=default.target
 EOF
-#arch-chroot /mnt /bin/bash << CHROOT
-#sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
-#sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.service /home/${myuser}/.config/systemd/user/default.target.requires
-#CHROOT
 #----------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
 Description=Run checkupdates every boot
+
 [Timer]
 OnBootSec=15sec
+
 [Install]
 WantedBy=timers.target
 EOF
+#---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
+sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.service /home/${myuser}/.config/systemd/user/default.target.requires
 sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.timer /home/${myuser}/.config/systemd/user/timers.target.wants
 CHROOT
 #---------------------------------
@@ -227,6 +236,7 @@ blacklist joydev
 blacklist mousedev
 blacklist mac_hid
 EOF
+sed -i 's/HOOKS=(base udev autodetect/HOOKS=(base systemd autodetect/g' /mnt/etc/mkinitcpio.conf
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt /bin/bash << CHROOT
 mkinitcpio -P
@@ -245,7 +255,7 @@ title Arch Linux
 linux /vmlinuz-linux
 initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
-options root=${rootpart} rw quiet splash nowatchdog
+options root=${rootpart} rw quiet loglevel=3 rd.udev.log_level=3 nowatchdog
 EOF
 
 
@@ -261,15 +271,15 @@ CHROOT
 #DISPLAY DRIVER
 if [ "${mygpu}" = "intel" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-intel mesa lib32-vulkan-intel
+  pacman -S --needed --noconfirm xf86-video-intel mesa
 CHROOT
 elif [ "${mygpu}" = "nvidia" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
+  pacman -S --needed --noconfirm nvidia nvidia-utils
 CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu mesa lib32-amdvlk
+  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
 CHROOT
 else
   sleep 1
@@ -488,26 +498,27 @@ CHROOT
 
 #HIDING APPLICATIONS FROM START MENU
 arch-chroot /mnt /bin/bash << CHROOT
-cp /usr/share/applications/libreoffice-base.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/libreoffice-draw.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/libreoffice-math.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/libreoffice-startcenter.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/avahi-discover.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/bvnc.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/bssh.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/qv4l2.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/qvidcap.desktop /home/fpusticki/.local/share/applications
-cp /usr/share/applications/nm-connection-editor.desktop /home/fpusticki/.local/share/applications
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/libreoffice-base.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/libreoffice-draw.desktop
-sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/fpusticki/.local/share/applications/libreoffice-math.desktop
-sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/fpusticki/.local/share/applications/libreoffice-startcenter.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/avahi-discover.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/bvnc.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/bssh.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/qv4l2.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/qvidcap.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/nm-connection-editor.desktop
+mkdir -p /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-base.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-draw.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-math.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-startcenter.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/avahi-discover.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/bvnc.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/bssh.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/qv4l2.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/qvidcap.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/nm-connection-editor.desktop /home/${myuser}/.local/share/applications
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-base.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-draw.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-math.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-startcenter.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/avahi-discover.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bvnc.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bssh.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qv4l2.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qvidcap.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/nm-connection-editor.desktop
 CHROOT
 
 #SHUTDOWN TIME LIMIT
@@ -515,7 +526,7 @@ sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/
 
 #--------------------------------------------------------------------------
 #FINISH INSTALLATION
-cd
+cd /
 rm -rf /home/${myuser}/temp
 umount -a
 read -p "***********************************
