@@ -152,8 +152,6 @@ EOF
 #---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} yay --save --answerdiff None --removemake
-sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user
-sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
 sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/timers.target.wants
 chmod +x /usr/local/checkupdates.sh
 CHROOT
@@ -168,6 +166,7 @@ ExecStart=/usr/local/checkupdates.sh
 RequiredBy=default.target
 EOF
 #arch-chroot /mnt /bin/bash << CHROOT
+#sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
 #sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.service /home/${myuser}/.config/systemd/user/default.target.requires
 #CHROOT
 #----------------------------------
@@ -219,6 +218,15 @@ cat << EOF >> /mnt/etc/hosts
 EOF
 
 #INITRAMFS
+cat << EOF > /mnt/etc/modprobe.d/blacklist.conf
+blacklist iTCO_wdt
+blacklist iTCO_vendor_support
+blacklist aesni_intel
+blacklist pcspkr
+blacklist joydev
+blacklist mousedev
+blacklist mac_hid
+EOF
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt /bin/bash << CHROOT
 mkinitcpio -P
@@ -237,7 +245,7 @@ title Arch Linux
 linux /vmlinuz-linux
 initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
-options root=${rootpart} rw quiet nowatchdog fsck.mode=skip
+options root=${rootpart} rw quiet splash nowatchdog
 EOF
 
 
@@ -253,15 +261,15 @@ CHROOT
 #DISPLAY DRIVER
 if [ "${mygpu}" = "intel" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-intel mesa
+  pacman -S --needed --noconfirm xf86-video-intel mesa lib32-vulkan-intel
 CHROOT
 elif [ "${mygpu}" = "nvidia" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils
+  pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils
 CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
+  pacman -S --needed --noconfirm xf86-video-amdgpu mesa lib32-amdvlk
 CHROOT
 else
   sleep 1
@@ -370,13 +378,13 @@ CHROOT
 if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
-  sudo -u ${myuser} yay -S --needed --noconfirm skypeforlinux-stable-bin \
-  zoom postman-bin
-  mkdir /home/${myuser}/temp
+  sudo -u ${myuser} yay -S --needed --noconfirm skypeforlinux-stable-bin zoom postman-bin
+  mkdir -p /home/${myuser}/temp
   cd /home/${myuser}/temp
   curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
   curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/OpenVPN.zip
   curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Sect_Studio.zip
+  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
   chmod +x *
   yes | Zoiper_3.3_Linux_Free_64Bit.run
   unzip OpenVPN.zip
@@ -386,8 +394,7 @@ if [ "${nth}" = "y" ]; then
   cp Sect_Studio/Studio.desktop /usr/share/applications
   cp Sect_Studio/SMS_tester.desktop /usr/share/applications
   chown -R ${myuser}:${myuser} /usr/local/Sect_Studio
-  cd
-  rm -rf /home/${myuser}/temp
+  cp mysql_conn.zip /home/${myuser}
 CHROOT
 fi
 
@@ -462,7 +469,7 @@ sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
 #PLANK THEME, WALLPAPER
 arch-chroot /mnt /bin/bash << CHROOT
-mkdir /home/${myuser}/temp
+mkdir -p /home/${myuser}/temp
 cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mojave.jpg
@@ -470,7 +477,6 @@ curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mountain.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
 chmod +x *
 cp dock.theme /usr/share/plank/themes/Default
 cp Mojave.jpg /usr/share/backgrounds
@@ -478,7 +484,52 @@ cp Mountain.jpg /usr/share/backgrounds
 cp 2dwall.jpg /usr/share/backgrounds
 cp kbd_shortcuts.zip /home/${myuser}
 cp App_screen.png /home/${myuser}
-cp mysql_conn.zip /home/${myuser}
+CHROOT
+
+#HIDING APPLICATIONS FROM START MENU
+arch-chroot /mnt /bin/bash << CHROOT
+cp /usr/share/applications/libreoffice-base.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/libreoffice-draw.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/libreoffice-math.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/libreoffice-startcenter.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/avahi-discover.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/bvnc.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/bssh.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/qv4l2.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/qvidcap.desktop /home/fpusticki/.local/share/applications
+cp /usr/share/applications/nm-connection-editor.desktop /home/fpusticki/.local/share/applications
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/libreoffice-base.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/libreoffice-draw.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/fpusticki/.local/share/applications/libreoffice-math.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/fpusticki/.local/share/applications/libreoffice-startcenter.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/avahi-discover.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/bvnc.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/bssh.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/qv4l2.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/qvidcap.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/fpusticki/.local/share/applications/nm-connection-editor.desktop
+CHROOT
+
+#SHUTDOWN TIME LIMIT
+sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/system.conf
+
+#--------------------------------------------------------------------------
+#FINISH INSTALLATION
 cd
 rm -rf /home/${myuser}/temp
+umount -a
+read -p "***********************************
+***** Installation completed! *****
+***********************************
+
+*** Press any key to finish and reboot..." rbt
+reboot
+exit 0
+#--------------------------------------------------------------------------
+
+
+cat << EOF > FILE
+EOF
+
+arch-chroot /mnt /bin/bash << CHROOT
 CHROOT
