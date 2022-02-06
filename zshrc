@@ -163,7 +163,7 @@ alias df='df -h'                                                # Human-readable
 alias free='free -m'                                            # Show sizes in MB
 alias ll='ls -alh'
 alias grep='grep --color=auto'
-alias update='sudo pacman -Syu && yay -Syu'
+alias update='paru'
 
 ## Plugins ---------------------------------------------
 # LOAD Theme
