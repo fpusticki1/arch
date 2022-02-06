@@ -497,8 +497,6 @@ arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} mkdir -p /home/${myuser}/temp
 cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mojave.jpg
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mountain.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
@@ -506,8 +504,6 @@ sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/mai
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/zshrc
 chmod +x *
 cp dock.theme /usr/share/plank/themes/Default
-cp Mojave.jpg /usr/share/backgrounds/gnome
-cp Mountain.jpg /usr/share/backgrounds/gnome
 cp 2dwall.jpg /usr/share/backgrounds/gnome
 sudo -u ${myuser} cp kbd_shortcuts.zip /home/${myuser}
 sudo -u ${myuser} cp App_screen.png /home/${myuser}
