@@ -21,12 +21,12 @@ if [ "${ifname}" = "y" ]; then
 else
   read -p "*** Enter your full name: " myname
 fi
+read -p "*** Is this a laptop? (y/n): " iflaptop
+read -p "*** Select CPU? (intel/amd): " mycpu
+read -p "*** Select GPU? (intel/amd/nvidia): " mygpu
+read -p "*** Enter hostname: " myhostname
 read -p "*** Enter username: " myuser
 read -p "*** Enter password: " mypassword
-read -p "*** Enter hostname: " myhostname
-read -p "*** Is this a laptop or pc? (laptop/PC): " iflaptop
-read -p "*** Intel or AMD CPU? (intel/amd): " mycpu
-read -p "*** Intel, AMD or Nvidia GPU? (intel/amd/nvidia): " mygpu
 read -p "*** Install Windows fonts? (y/N): " winfonts
 read -p "*** Install NTH apps? (y/N): " nth
 read -p "*** Install Thunderbird? (y/N): " thund
@@ -47,12 +47,13 @@ echo "*********************************************************"
 fdisk -l
 echo "*********************************************************"
 echo && sleep 1
-read -p "This operation will erase the disk!!!
-*** Enter your disk name (example: /dev/sda ): " mydisk
+echo "This operation will erase the disk!!!"
+echo && sleep 1
+read -p "*** Enter your disk name (example: /dev/sda ): " mydisk
 echo
 read -p "Selected disk is: *** ${mydisk} ***
-*** Are you sure you want to erase it and install Arch Linux? (YES/n): " confirm
-if [ "${confirm}" = "YES" ]; then
+*** Are you sure you want to erase it and install Arch Linux? (yes/n): " confirm
+if [ "${confirm}" = "yes" ]; then
   for n in ${mydisk}* ; do umount $n ; done
   sleep 1
   for n in ${mydisk}* ; do swapoff $n ; done
@@ -110,20 +111,19 @@ networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
 
 #USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
-useradd -m -s /usr/bin/zsh ${myuser}
+useradd -m -G users -s /usr/bin/zsh ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd root
 usermod -c "${myname}" ${myuser}
 echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
-chmod -R 755 /home/${myuser}
 CHROOT
 
-#INSTALL YAY
+#INSTALL PARU
 arch-chroot /mnt /bin/bash << CHROOT
+chown -R ${myuser}:${myuser} /opt
 cd /opt
-git clone https://aur.archlinux.org/yay.git
-chown -R ${myuser}:${myuser} yay
-cd yay
+sudo -u ${myuser} git clone https://aur.archlinux.org/paru.git
+cd paru
 sudo -u ${myuser} makepkg -si --noconfirm
 CHROOT
 
@@ -133,9 +133,12 @@ CHROOT
 ###-----------------------------------------------------------------------------
 
 #PACMAN CONFIGURATION
-sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
 sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
+sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
+sed -i 's/#RemoveMake/RemoveMake/g' /mnt/etc/paru.conf
+sed -i 's/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/g' /mnt/etc/makepkg.conf
+sed -i 's/COMPRESSZST=(zstd -c -z -q -)/COMPRESSZST=(zstd -c -z -q --threads=0 -)/g' /mnt/etc/makepkg.conf
 cat << 'EOF' > /mnt/etc/pacman.d/mirrorlist
 Server = http://mirror.luzea.de/archlinux/$repo/os/$arch
 Server = http://arch.jensgutermuth.de/$repo/os/$arch
@@ -146,31 +149,25 @@ EOF
 # --------------------------------
 cat << EOF > /mnt/usr/local/checkupdates.sh
 #!/bin/bash
-# Clean cache...
-rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
-rm -rf /home/${myuser}/.cache/yay/{,.[!.],..?}*
-# Check updates...
-if [[ \$(pacman -Qu) || \$(yay -Qu) ]]; then
+sudo rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
+sudo rm -rf /home/${myuser}/.cache/paru/{,.[!.],..?}*
+if [[ \$(paru -Qu) ]]; then
   notify-send '*** UPDATES ***' 'New updates available...'
 fi
 exit 0
 EOF
 #---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} yay --save --answerdiff None --removemake
-sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/default.target.requires
-sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/timers.target.wants
 chmod +x /usr/local/checkupdates.sh
+sudo -u ${myuser} mkdir -p /home/${myuser}/.config/systemd/user/timers.target.wants
 CHROOT
 #----------------------------------
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.service
 [Unit]
 Description=Check Updates service
-
 [Service]
 Type=oneshot
 ExecStart=/usr/local/checkupdates.sh
-
 [Install]
 RequiredBy=default.target
 EOF
@@ -178,16 +175,15 @@ EOF
 cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
 Description=Run checkupdates every boot
-
 [Timer]
-OnBootSec=15sec
-
+OnBootSec=20sec
 [Install]
 WantedBy=timers.target
 EOF
 #---------------------------------
 arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.service /home/${myuser}/.config/systemd/user/default.target.requires
+chown ${myuser}:${myuser} /home/${myuser}/.config/systemd/user/checkupdates.service
+chown ${myuser}:${myuser} /home/${myuser}/.config/systemd/user/checkupdates.timer
 sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.timer /home/${myuser}/.config/systemd/user/timers.target.wants
 CHROOT
 #---------------------------------
@@ -226,7 +222,7 @@ cat << EOF >> /mnt/etc/hosts
 127.0.1.1  ${myhostname}
 EOF
 
-#INITRAMFS
+#BLACKLIST MODULES
 cat << EOF > /mnt/etc/modprobe.d/blacklist.conf
 blacklist iTCO_wdt
 blacklist iTCO_vendor_support
@@ -236,6 +232,8 @@ blacklist joydev
 blacklist mousedev
 blacklist mac_hid
 EOF
+
+#INITRAMFS
 sed -i 's/HOOKS=(base udev autodetect/HOOKS=(base systemd autodetect/g' /mnt/etc/mkinitcpio.conf
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt /bin/bash << CHROOT
@@ -279,7 +277,8 @@ elif [ "${mygpu}" = "nvidia" ]; then
 CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm xf86-video-amdgpu mesa
+  pacman -S --needed --noconfirm xf86-video-amdgpu 
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview amdgpu-pro-libgl
 CHROOT
 else
   sleep 1
@@ -315,16 +314,14 @@ systemctl mask ldconfig
 CHROOT
 
 #LAPTOP POWER SETTINGS
-if [ "${iflaptop}" = "laptop" ]; then
+if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} yay -S --needed --noconfirm auto-cpufreq
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview auto-cpufreq
   systemctl enable auto-cpufreq
 CHROOT
 fi
 
-#JAVA -----------------------
-#export JAVA_TOOL_OPTIONS='-Dawt.useSystemAAFontSettings=on -Dswing.aatext=true'
-#echo "JAVA_FONTS=/usr/share/fonts/TTF" >> /etc/environment
+#JAVA
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm jdk-openjdk
 archlinux-java fix
@@ -337,7 +334,7 @@ ttf-hack ttf-ubuntu-font-family
 CHROOT
 if [ "${winfonts}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} yay -S --needed --noconfirm ttf-ms-win10-auto
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview ttf-ms-win10-auto
 CHROOT
 fi
 cat << EOF > /mnt/etc/fonts/local.conf
@@ -375,28 +372,30 @@ EOF
 #PACMAN PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm unrar p7zip htop neofetch wget \
-mlocate net-tools plank vlc firefox libreoffice-still
+mlocate net-tools plank vlc firefox libreoffice-still zsh-completions \
+zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions
 CHROOT
 
 #AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} yay -S --needed --noconfirm sublime-text-4 \
-google-chrome yaru-icon-theme
+sudo -u ${myuser} paru -S --needed --noconfirm --skipreview sublime-text-4 \
+photocollage google-chrome yaru-icon-theme zsh-theme-powerlevel10k-git
 CHROOT
 
 #NTH APPS
 if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
-  sudo -u ${myuser} yay -S --needed --noconfirm skypeforlinux-stable-bin zoom postman-bin
-  mkdir -p /home/${myuser}/temp
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview skypeforlinux-stable-bin zoom postman-bin
+  yes | sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
+  sudo -u ${myuser} mkdir -p /home/${myuser}/temp
   cd /home/${myuser}/temp
-  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
-  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/OpenVPN.zip
-  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Sect_Studio.zip
-  curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
+  sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
+  sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/OpenVPN.zip
+  sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Sect_Studio.zip
+  sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
   chmod +x *
-  yes | Zoiper_3.3_Linux_Free_64Bit.run
+  yes | /home/${myuser}/temp/Zoiper_3.3_Linux_Free_64Bit.run
   unzip OpenVPN.zip
   cp -R OpenVPN/ /usr/local/
   unzip Sect_Studio.zip
@@ -404,7 +403,7 @@ if [ "${nth}" = "y" ]; then
   cp Sect_Studio/Studio.desktop /usr/share/applications
   cp Sect_Studio/SMS_tester.desktop /usr/share/applications
   chown -R ${myuser}:${myuser} /usr/local/Sect_Studio
-  cp mysql_conn.zip /home/${myuser}
+  sudo -u ${myuser} cp mysql_conn.zip /home/${myuser}
 CHROOT
 fi
 
@@ -420,7 +419,7 @@ if [ "${print}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm cups gutenprint
   systemctl enable cups.socket
-  mkdir -p /home/${myuser}/.local/share/applications
+  sudo -u ${myuser} mkdir -p /home/${myuser}/.local/share/applications
   cp /usr/share/applications/cups.desktop /home/${myuser}/.local/share/applications
   sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/cups.desktop
 CHROOT
@@ -436,7 +435,7 @@ fi
 #PLEX
 if [ "${plex}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} yay -S --needed --noconfirm plex-media-server
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview plex-media-server
   systemctl enable plexmediaserver
 CHROOT
 fi
@@ -444,7 +443,7 @@ fi
 #PYCHARM
 if [ "${pycharm}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} yay -S --needed --noconfirm pycharm-professional
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview pycharm-professional
   pacman -S --needed --noconfirm python-pip
 CHROOT
 fi
@@ -452,12 +451,27 @@ fi
 #STEAM
 if [ "${games}" = "y" ]; then
   cat << EOF >> /mnt/etc/pacman.conf
-
   [multilib]
   Include = /etc/pacman.d/mirrorlist
 EOF
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -Syu --noconfirm
+CHROOT
+  if [ "${mygpu}" = "intel" ]; then
+    arch-chroot /mnt /bin/bash << CHROOT
+    pacman -S --needed --noconfirm lib32-mesa vulkan-intel lib32-vulkan-intel
+CHROOT
+  elif [ "${mygpu}" = "nvidia" ]; then
+    arch-chroot /mnt /bin/bash << CHROOT
+    pacman -S --needed --noconfirm lib32-nvidia-utils
+CHROOT
+  elif [ "${mygpu}" = "amd" ]; then
+    arch-chroot /mnt /bin/bash << CHROOT
+    sudo -u ${myuser} paru -S --needed --noconfirm --skipreview lib32-amdgpu-pro-libgl
+    pacman -S --needed --noconfirm amdvlk lib32-amdvlk
+CHROOT
+  fi
+  arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm steam
 CHROOT
 fi
@@ -467,8 +481,9 @@ fi
 ### PART 6: POST INSTALL TWEAKS ------------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#JOURNAL DISABLE
+#SYSTEMD TWEAKS
 sed -i 's/#Storage=auto/Storage=none/g' /mnt/etc/systemd/journald.conf
+sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/system.conf
 rm -rf /mnt/var/log/journal/
 
 #SWAPPINESS
@@ -477,28 +492,32 @@ echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-swappiness.conf
 #DISABLE WAYLAND
 sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
-#PLANK THEME, WALLPAPER
+#PLANK THEME, WALLPAPER, Z-SHELL
 arch-chroot /mnt /bin/bash << CHROOT
-mkdir -p /home/${myuser}/temp
+sudo -u ${myuser} mkdir -p /home/${myuser}/temp
 cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mojave.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Mountain.jpg
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/p10k.zsh
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/zshrc
 chmod +x *
 cp dock.theme /usr/share/plank/themes/Default
-cp Mojave.jpg /usr/share/backgrounds
-cp Mountain.jpg /usr/share/backgrounds
-cp 2dwall.jpg /usr/share/backgrounds
-cp kbd_shortcuts.zip /home/${myuser}
-cp App_screen.png /home/${myuser}
+cp Mojave.jpg /usr/share/backgrounds/gnome
+cp Mountain.jpg /usr/share/backgrounds/gnome
+cp 2dwall.jpg /usr/share/backgrounds/gnome
+sudo -u ${myuser} cp kbd_shortcuts.zip /home/${myuser}
+sudo -u ${myuser} cp App_screen.png /home/${myuser}
+sudo -u ${myuser} cp p10k.zsh /home/${myuser}/.p10k.zsh
+sudo -u ${myuser} cp zshrc /home/${myuser}/.zshrc
 CHROOT
 
 #HIDING APPLICATIONS FROM START MENU
 arch-chroot /mnt /bin/bash << CHROOT
-mkdir -p /home/${myuser}/.local/share/applications
+sudo -u ${myuser} mkdir -p /home/${myuser}/.local/share/applications
 cp /usr/share/applications/libreoffice-base.desktop /home/${myuser}/.local/share/applications
 cp /usr/share/applications/libreoffice-draw.desktop /home/${myuser}/.local/share/applications
 cp /usr/share/applications/libreoffice-math.desktop /home/${myuser}/.local/share/applications
@@ -521,13 +540,9 @@ sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/appli
 sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/nm-connection-editor.desktop
 CHROOT
 
-#SHUTDOWN TIME LIMIT
-sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/system.conf
-
 #--------------------------------------------------------------------------
 #FINISH INSTALLATION
-cd /
-rm -rf /home/${myuser}/temp
+rm -rf /mnt/home/${myuser}/temp
 umount -a
 read -p "***********************************
 ***** Installation completed! *****
@@ -537,10 +552,3 @@ read -p "***********************************
 reboot
 exit 0
 #--------------------------------------------------------------------------
-
-
-cat << EOF > FILE
-EOF
-
-arch-chroot /mnt /bin/bash << CHROOT
-CHROOT
