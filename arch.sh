@@ -10,10 +10,10 @@ echo && sleep 1
 ### PART 1: BASIC CONFIGURATION ------------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#SET KEYMAP
+### SET KEYMAP
 loadkeys croat
 
-#USER INPUTS
+### USER INPUTS
 echo "***************************************************"
 read -p "*** Is your name Franjo Pustički? (y/n): " ifname
 if [ "${ifname}" = "y" ]; then
@@ -36,11 +36,11 @@ read -p "*** Install Plex media server? (y/N): " plex
 read -p "*** Install Pycharm? (y/N): " pycharm
 read -p "*** Install Steam for games? (y/N): " games
 
-#SET TIME
+### SET TIME
 timedatectl set-timezone Europe/Zagreb
 timedatectl set-ntp true
 
-#DISK PARTITIONING
+### DISK PARTITIONING
 echo
 echo "*****************  Listing Disk drives  *****************"
 echo "*********************************************************"
@@ -75,21 +75,21 @@ else
   exit 0
 fi
 
-#EXIT ON ERROR
+### EXIT ON ERROR
 set -e
 
-#PARTITION FORMATTING
+### PARTITION FORMATTING
 mkfs.ext4 ${rootpart}
 mkswap ${swappart}
 mkfs.fat -F 32 ${bootpart}
 
-#MOUNTING FILESYSTEMS
+### MOUNTING FILESYSTEMS
 mount ${rootpart} /mnt
 swapon ${swappart}
 mkdir /mnt/boot
 mount ${bootpart} /mnt/boot
 
-#SHOW CREATED PARTITIONS
+### SHOW CREATED PARTITIONS
 echo
 echo "*****************  Listing Disk drives  *****************"
 echo "*********************************************************"
@@ -104,12 +104,12 @@ read -p "Please check your new partitions and mount points.
 ### PART 2: BASE SYSTEM INSTALLATION -------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#BASE SYSTEM INSTALL
+### BASE SYSTEM INSTALL
 pacstrap /mnt base base-devel linux linux-firmware \
 dosfstools f2fs-tools man-db man-pages nano git zsh \
 networkmanager networkmanager-openvpn openresolv ${mycpu}-ucode
 
-#USER ACCOUNTS
+### USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
 useradd -m -G users -s /usr/bin/zsh ${myuser}
 (echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
@@ -118,7 +118,7 @@ usermod -c "${myname}" ${myuser}
 echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 CHROOT
 
-#INSTALL PARU
+### INSTALL PARU
 arch-chroot /mnt /bin/bash << CHROOT
 cd /opt
 git clone https://aur.archlinux.org/paru.git
@@ -132,11 +132,12 @@ CHROOT
 ### PART 3: SYSTEM CONFIGURATION -----------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#PACMAN CONFIGURATION
+### PACMAN CONFIGURATION
 sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
 sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
 sed -i 's/#RemoveMake/RemoveMake/g' /mnt/etc/paru.conf
+sed -i '/^\[options\]/a SkipReview' /mnt/etc/paru.conf
 sed -i 's/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/g' /mnt/etc/makepkg.conf
 sed -i 's/COMPRESSZST=(zstd -c -z -q -)/COMPRESSZST=(zstd -c -z -q --threads=0 -)/g' /mnt/etc/makepkg.conf
 cat << 'EOF' > /mnt/etc/pacman.d/mirrorlist
@@ -177,7 +178,7 @@ cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
 Description=Run checkupdates every boot
 [Timer]
-OnBootSec=20sec
+OnBootSec=15sec
 [Install]
 WantedBy=timers.target
 EOF
@@ -189,16 +190,16 @@ sudo -u ${myuser} ln -s /home/${myuser}/.config/systemd/user/checkupdates.timer 
 CHROOT
 #---------------------------------
 
-#FSTAB
+### FSTAB
 genfstab -U /mnt >> /mnt/etc/fstab
 
-#TIME ZONE
+### TIME ZONE
 arch-chroot /mnt /bin/bash << CHROOT
 ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
 hwclock --systohc
 CHROOT
 
-#LOCALE AND KEYMAP
+### LOCALE AND KEYMAP
 cat << EOF > /mnt/etc/locale.gen
 en_US.UTF-8 UTF-8
 hr_HR.UTF-8 UTF-8
@@ -213,7 +214,7 @@ cat << EOF > /mnt/etc/vconsole.conf
 KEYMAP=croat
 EOF
 
-#NETWORK
+### NETWORK
 cat << EOF > /mnt/etc/hostname
 ${myhostname}
 EOF
@@ -223,7 +224,7 @@ cat << EOF >> /mnt/etc/hosts
 127.0.1.1  ${myhostname}
 EOF
 
-#BLACKLIST MODULES
+### BLACKLIST MODULES
 cat << EOF > /mnt/etc/modprobe.d/blacklist.conf
 blacklist iTCO_wdt
 blacklist iTCO_vendor_support
@@ -234,14 +235,14 @@ blacklist mousedev
 blacklist mac_hid
 EOF
 
-#INITRAMFS
+### INITRAMFS
 sed -i 's/HOOKS=(base udev autodetect/HOOKS=(base systemd autodetect/g' /mnt/etc/mkinitcpio.conf
 sed -i 's/#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/g' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt /bin/bash << CHROOT
 mkinitcpio -P
 CHROOT
 
-#BOOTLOADER
+### BOOTLOADER
 arch-chroot /mnt /bin/bash << CHROOT
 bootctl install
 CHROOT
@@ -262,12 +263,12 @@ EOF
 ### PART 4: DESKTOP ENVIRONMENT INSTALLATION -----------------------------------
 ###-----------------------------------------------------------------------------
 
-#XORG
+### XORG
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm xorg-server xorg-apps
 CHROOT
 
-#DISPLAY DRIVER
+### DISPLAY DRIVER
 if [ "${mygpu}" = "intel" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm xf86-video-intel mesa
@@ -279,18 +280,18 @@ CHROOT
 elif [ "${mygpu}" = "amd" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm xf86-video-amdgpu 
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview amdgpu-pro-libgl
+  sudo -u ${myuser} paru -S --needed --noconfirm amdgpu-pro-libgl
 CHROOT
 else
   sleep 1
 fi
 
-#PIPEWIRE
+### PIPEWIRE
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm wireplumber pipewire-jack pipewire-pulse
 CHROOT
 
-#DESKTOP ENVIRONMENT - GNOME
+### DESKTOP ENVIRONMENT - GNOME
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm gnome-shell gnome-control-center gdm \
 gnome-tweaks gnome-shell-extensions gnome-system-monitor gvfs-mtp \
@@ -298,7 +299,7 @@ gnome-terminal gnome-calculator gnome-screenshot gnome-backgrounds \
 nautilus file-roller seahorse simple-scan xdg-user-dirs sushi eog
 CHROOT
 
-#ENABLE SERVICES
+### ENABLE SERVICES
 arch-chroot /mnt /bin/bash << CHROOT
 systemctl enable NetworkManager
 systemctl enable systemd-timesyncd
@@ -306,7 +307,7 @@ systemctl enable systemd-boot-update
 systemctl enable gdm
 CHROOT
 
-#DISABLE SERVICES
+### DISABLE SERVICES
 arch-chroot /mnt /bin/bash << CHROOT
 systemctl disable lvm2-monitor
 systemctl mask lvm2-monitor
@@ -314,85 +315,48 @@ systemctl disable ldconfig
 systemctl mask ldconfig
 CHROOT
 
-#LAPTOP POWER SETTINGS
+### LAPTOP POWER SETTINGS
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview auto-cpufreq
+  sudo -u ${myuser} paru -S --needed --noconfirm auto-cpufreq
   systemctl enable auto-cpufreq
 CHROOT
 fi
 
-#JAVA
+### JAVA
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm jdk-openjdk
 archlinux-java fix
 CHROOT
-
-#FONTS
-arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm ttf-dejavu ttf-liberation \
-ttf-hack ttf-ubuntu-font-family
-CHROOT
-if [ "${winfonts}" = "y" ]; then
-  arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview ttf-ms-win10-auto
-CHROOT
-fi
-cat << EOF > /mnt/etc/fonts/local.conf
-<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-  <match target="font">
-    <edit name="antialias" mode="assign">
-      <bool>true</bool>
-    </edit>
-    <edit name="hinting" mode="assign">
-      <bool>true</bool>
-    </edit>
-    <edit name="rgba" mode="assign">
-      <const>rgb</const>
-    </edit>
-    <edit name="hintstyle" mode="assign">
-      <const>hintslight</const>
-    </edit>
-    <edit name="lcdfilter" mode="assign">
-      <const>lcddefault</const>
-    </edit>
-    <edit name="embeddedbitmap" mode="assign">
-      <bool>false</bool>
-    </edit>
-  </match>
-</fontconfig>
-EOF
 
 
 ###-----------------------------------------------------------------------------
 ### PART 5: APPS INSTALLATION --------------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#PACMAN PACKAGES
+### PACMAN PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm unrar p7zip htop neofetch wget \
 mlocate net-tools plank vlc firefox libreoffice-still zsh-completions \
 zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions
 CHROOT
 
-#AUR PACKAGES
+### AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} paru -S --needed --noconfirm --skipreview sublime-text-4 \
+sudo -u ${myuser} paru -S --needed --noconfirm sublime-text-4 \
 photocollage google-chrome yaru-icon-theme zsh-theme-powerlevel10k-git
 CHROOT
 
-#NTH APPS
+### NTH APPS
 if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview skypeforlinux-stable-bin zoom postman-bin
+  sudo -u ${myuser} paru -S --needed --noconfirm skypeforlinux-stable-bin zoom postman-bin
   mkdir -p /opt/Termius/chrome-sandbox
   chown -R ${myuser}:${myuser} /opt/Termius
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
+  sudo -u ${myuser} paru -S --needed --noconfirm termius-app
   rm -rf /opt/Termius
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
+  sudo -u ${myuser} paru -S --needed --noconfirm termius-app
   sudo -u ${myuser} mkdir -p /home/${myuser}/temp
   cd /home/${myuser}/temp
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
@@ -412,14 +376,14 @@ if [ "${nth}" = "y" ]; then
 CHROOT
 fi
 
-#THUNDERBIRD
+### THUNDERBIRD
 if [ "${thund}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm thunderbird
 CHROOT
 fi
 
-#PRINTER SUPPORT
+### PRINTER SUPPORT
 if [ "${print}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm cups gutenprint
@@ -430,30 +394,30 @@ if [ "${print}" = "y" ]; then
 CHROOT
 fi
 
-#TORRENT
+### TORRENT
 if [ "${torr}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm fragments
 CHROOT
 fi
 
-#PLEX
+### PLEX
 if [ "${plex}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview plex-media-server
+  sudo -u ${myuser} paru -S --needed --noconfirm plex-media-server
   systemctl enable plexmediaserver
 CHROOT
 fi
 
-#PYCHARM
+### PYCHARM
 if [ "${pycharm}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview pycharm-professional
+  sudo -u ${myuser} paru -S --needed --noconfirm pycharm-professional
   pacman -S --needed --noconfirm python-pip
 CHROOT
 fi
 
-#STEAM
+### STEAM
 if [ "${games}" = "y" ]; then
   cat << EOF >> /mnt/etc/pacman.conf
   [multilib]
@@ -472,7 +436,7 @@ CHROOT
 CHROOT
   elif [ "${mygpu}" = "amd" ]; then
     arch-chroot /mnt /bin/bash << CHROOT
-    sudo -u ${myuser} paru -S --needed --noconfirm --skipreview lib32-amdgpu-pro-libgl
+    sudo -u ${myuser} paru -S --needed --noconfirm lib32-amdgpu-pro-libgl
     pacman -S --needed --noconfirm amdvlk lib32-amdvlk
 CHROOT
   fi
@@ -486,20 +450,20 @@ fi
 ### PART 6: POST INSTALL TWEAKS ------------------------------------------------
 ###-----------------------------------------------------------------------------
 
-#SYSTEMD TWEAKS
+### SYSTEMD TWEAKS
 sed -i 's/#Storage=auto/Storage=none/g' /mnt/etc/systemd/journald.conf
 sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=2s/g' /mnt/etc/systemd/system.conf
 rm -rf /mnt/var/log/journal/
 
-#SWAPPINESS
+### SWAPPINESS
 echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-swappiness.conf
 
-#DISABLE WAYLAND
+### DISABLE WAYLAND
 sed -i '/^\[daemon\]/a AutomaticLoginEnable=True' /mnt/etc/gdm/custom.conf
 sed -i "/^\[daemon\]/a AutomaticLogin=${myuser}" /mnt/etc/gdm/custom.conf
 sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
-#PLANK THEME, WALLPAPER, Z-SHELL
+### PLANK THEME, WALLPAPER, Z-SHELL
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} mkdir -p /home/${myuser}/temp
 cd /home/${myuser}/temp
@@ -509,7 +473,7 @@ sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/mai
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/p10k.zsh
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/zshrc
-chmod +x *
+chmod +x zshrc
 cp dock.theme /usr/share/plank/themes/Default
 cp 2dwall.jpg /usr/share/backgrounds/gnome
 sudo -u ${myuser} cp kbd_shortcuts.zip /home/${myuser}
@@ -518,7 +482,7 @@ sudo -u ${myuser} cp p10k.zsh /home/${myuser}/.p10k.zsh
 sudo -u ${myuser} cp zshrc /home/${myuser}/.zshrc
 CHROOT
 
-#HIDING APPLICATIONS FROM START MENU
+### HIDING APPLICATIONS FROM START MENU
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} mkdir -p /home/${myuser}/.local/share/applications
 cp /usr/share/applications/libreoffice-base.desktop /home/${myuser}/.local/share/applications
@@ -543,8 +507,44 @@ sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/appli
 sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/nm-connection-editor.desktop
 CHROOT
 
-#--------------------------------------------------------------------------
-#FINISH INSTALLATION
+### FONTS
+arch-chroot /mnt /bin/bash << CHROOT
+pacman -S --needed --noconfirm ttf-dejavu ttf-liberation \
+ttf-hack ttf-ubuntu-font-family noto-fonts-emoji
+CHROOT
+if [ "${winfonts}" = "y" ]; then
+  arch-chroot /mnt /bin/bash << CHROOT
+  sudo -u ${myuser} paru -S --needed --noconfirm ttf-ms-win10-auto
+CHROOT
+fi
+cat << EOF > /mnt/etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <match target="font">
+    <edit mode="assign" name="antialias">
+      <bool>true</bool>
+    </edit>
+    <edit mode="assign" name="embeddedbitmap">
+      <bool>false</bool>
+    </edit>
+    <edit mode="assign" name="hinting">
+      <bool>true</bool>
+    </edit>
+    <edit mode="assign" name="hintstyle">
+      <const>hintslight</const>
+    </edit>
+    <edit mode="assign" name="lcdfilter">
+      <const>lcddefault</const>
+    </edit>
+    <edit mode="assign" name="rgba">
+      <const>rgb</const>
+    </edit>
+  </match>
+</fontconfig>
+EOF
+
+### FINISH INSTALLATION
 rm -rf /mnt/home/${myuser}/temp
 umount -a
 read -p "***********************************
