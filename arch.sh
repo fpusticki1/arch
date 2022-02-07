@@ -120,9 +120,9 @@ CHROOT
 
 #INSTALL PARU
 arch-chroot /mnt /bin/bash << CHROOT
-chown -R ${myuser}:${myuser} /opt
 cd /opt
-sudo -u ${myuser} git clone https://aur.archlinux.org/paru.git
+git clone https://aur.archlinux.org/paru.git
+chown -R ${myuser}:${myuser} paru
 cd paru
 sudo -u ${myuser} makepkg -si --noconfirm
 CHROOT
@@ -151,6 +151,7 @@ cat << EOF > /mnt/usr/local/checkupdates.sh
 #!/bin/bash
 sudo rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
 sudo rm -rf /home/${myuser}/.cache/paru/{,.[!.],..?}*
+paru -Sy
 if [[ \$(paru -Qu) ]]; then
   notify-send '*** UPDATES ***' 'New updates available...'
 fi
@@ -387,7 +388,11 @@ if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
   sudo -u ${myuser} paru -S --needed --noconfirm --skipreview skypeforlinux-stable-bin zoom postman-bin
-  yes | sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
+  mkdir -p /opt/Termius/chrome-sandbox
+  chown -R ${myuser}:${myuser} /opt/Termius
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
+  rm -rf /opt/Termius
+  sudo -u ${myuser} paru -S --needed --noconfirm --skipreview termius-app
   sudo -u ${myuser} mkdir -p /home/${myuser}/temp
   cd /home/${myuser}/temp
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
@@ -490,6 +495,8 @@ rm -rf /mnt/var/log/journal/
 echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-swappiness.conf
 
 #DISABLE WAYLAND
+sed -i '/^\[daemon\]/a AutomaticLoginEnable=True' /mnt/etc/gdm/custom.conf
+sed -i "/^\[daemon\]/a AutomaticLogin=${myuser}" /mnt/etc/gdm/custom.conf
 sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 
 #PLANK THEME, WALLPAPER, Z-SHELL
@@ -542,9 +549,5 @@ rm -rf /mnt/home/${myuser}/temp
 umount -a
 read -p "***********************************
 ***** Installation completed! *****
-***********************************
-
-*** Press any key to finish and reboot..." rbt
-reboot
+***********************************"
 exit 0
-#--------------------------------------------------------------------------
