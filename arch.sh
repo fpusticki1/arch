@@ -474,6 +474,7 @@ sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/mai
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/p10k.zsh
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/zshrc
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Todo.txt
 chmod +x zshrc
 cp dock.theme /usr/share/plank/themes/Default
 cp 2dwall.jpg /usr/share/backgrounds/gnome
@@ -481,6 +482,7 @@ sudo -u ${myuser} cp kbd_shortcuts.zip /home/${myuser}
 sudo -u ${myuser} cp App_screen.png /home/${myuser}
 sudo -u ${myuser} cp p10k.zsh /home/${myuser}/.p10k.zsh
 sudo -u ${myuser} cp zshrc /home/${myuser}/.zshrc
+sudo -u ${myuser} cp Todo.txt /home/${myuser}
 CHROOT
 
 ### HIDING APPLICATIONS FROM START MENU
