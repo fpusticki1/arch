@@ -1,0 +1,72 @@
+# Spajanje na wifi (ako je laptop)
+	iwctl --passphrase PASSPHRASE station wlan0 connect SSID
+
+# Download i pokretanje skripte
+	curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/arch.sh
+	bash arch.sh
+
+---------------------------------------------
+Seahorse - set empty password
+
+Configure VPN
+
+Wallpaper
+
+Keyboard shortcuts
+Region and language
+Formats
+-----------------------
+EXTENSIONS:
+	No Overview at start-up
+	Top Panel Workspace Scroll
+	Unblank lock screen
+	Appindicator and KStatusNotifier
+	Gnome 40 UI Improvements
+
+TWEAKS:
+	Interface Text	- Ubuntu Regular 11
+	Document Text	- Sans Regular   11
+	Monospace Text	- Hack Regular   11
+	Legacy Window 	- Ubuntu Bold    11
+------------------------
+Sublime
+	- Install compare plugin
+		sbs_compare.py
+			Add after line 570:
+				new_window.set_view_index( new_window.active_view(), 0, 0 )
+	- Add to settings
+		"show_encoding": true,
+		"fallback_encoding": "Central European (Windows 1250)"
+
+Install Termius-app
+	paru -S --needed --noconfirm termius-app
+
+LibreOffice - disable Java
+Turn off startup applications
+	delete templates folder
+	delete public folder
+Plank autostart, configure, theme
+Configure apps
+
+Nautilus settings
+	# local access to pc / laptop
+	sftp://192.168.1.xxx/
+	Mount disk, add to Nautilus bookmarks, standby after 5 seconds
+
+	as user:
+	gsettings set org.gnome.nautilus.list-view default-visible-columns "['name','size','type','date_modified']"
+	
+PLEX
+	http://127.0.0.1:32400/web
+------------------------
+alsamixer - add microphone sidetone
+	sudo alsactl store
+
+######################################
+######################################
+
+# FINGERPRINT dell ??
+yay -S libfprint-2-tod1-xps9300-bin
+		fprintd 1.94.1-1
+
+
