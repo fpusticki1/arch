@@ -352,11 +352,6 @@ if [ "${nth}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm mysql-workbench remmina freerdp audacity
   sudo -u ${myuser} paru -S --needed --noconfirm skypeforlinux-stable-bin zoom postman-bin
-  mkdir -p /opt/Termius/chrome-sandbox
-  chown -R ${myuser}:${myuser} /opt/Termius
-  sudo -u ${myuser} paru -S --needed --noconfirm termius-app
-  rm -rf /opt/Termius
-  sudo -u ${myuser} paru -S --needed --noconfirm termius-app
   sudo -u ${myuser} mkdir -p /home/${myuser}/temp
   cd /home/${myuser}/temp
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
