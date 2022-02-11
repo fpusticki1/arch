@@ -318,8 +318,8 @@ CHROOT
 ### LAPTOP POWER SETTINGS
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm auto-cpufreq
-  systemctl enable auto-cpufreq
+  pacman -S --needed --noconfirm tlp
+  systemctl enable tlp
 CHROOT
 fi
 
