@@ -325,7 +325,7 @@ fi
 
 ### JAVA
 arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm jdk-openjdk
+pacman -S --needed --noconfirm jdk11-openjdk
 archlinux-java fix
 CHROOT
 
