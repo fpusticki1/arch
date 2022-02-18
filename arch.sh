@@ -66,9 +66,16 @@ if [ "${confirm}" = "yes" ]; then
   sleep 1
   (echo n; echo; echo; echo; echo w) | fdisk ${mydisk}
   sleep 1
-  bootpart="${mydisk}1"
-  swappart="${mydisk}2"
-  rootpart="${mydisk}3"
+  if [ "${mydisk}" = "/dev/nvme0n1" ]; then
+    bootpart="${mydisk}p1"
+    swappart="${mydisk}p2"
+    rootpart="${mydisk}p3"
+  else
+    bootpart="${mydisk}1"
+    swappart="${mydisk}2"
+    rootpart="${mydisk}3"  
+  fi
+
 else
   echo "***** Exiting installation script... *****"
   sleep 5
