@@ -6,6 +6,10 @@
 	bash arch.sh
 
 ---------------------------------------------
+/home/fpusticki/temp
+  - Install Zoiper as root
+  - mysql connections
+  
 Seahorse - set empty password
 
 Configure VPN
