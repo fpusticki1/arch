@@ -65,12 +65,3 @@ PLEX
 ------------------------
 alsamixer - add microphone sidetone
 	sudo alsactl store
-
-######################################
-######################################
-
-# FINGERPRINT dell ??
-yay -S libfprint-2-tod1-xps9300-bin
-		fprintd 1.94.1-1
-
-
