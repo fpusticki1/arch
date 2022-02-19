@@ -26,6 +26,7 @@ EXTENSIONS:
 	Unblank lock screen
 	Appindicator and KStatusNotifier
 	Gnome 40 UI Improvements
+	Notification Banner Reloaded
 
 TWEAKS:
 	Interface Text	- Ubuntu Regular 11
