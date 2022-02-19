@@ -364,24 +364,26 @@ if [ "${nth}" = "y" ]; then
   cd /home/${myuser}/temp
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Zoiper_3.3_Linux_Free_64Bit.run
   chmod +x Zoiper_3.3_Linux_Free_64Bit.run
-  yes | /home/${myuser}/temp/Zoiper_3.3_Linux_Free_64Bit.run
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/OpenVPN.zip
   unzip OpenVPN.zip
   cp -R OpenVPN/ /usr/local/
+  rm -rf OpenVPN*
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Sect_Studio.zip
   unzip Sect_Studio.zip
   cp -R Sect_Studio/ /usr/local/
   cp Sect_Studio/Studio.desktop /usr/share/applications
   cp Sect_Studio/SMS_tester.desktop /usr/share/applications
   chown -R ${myuser}:${myuser} /usr/local/Sect_Studio
+  rm -rf Sect_Studio*
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
-  sudo -u ${myuser} cp mysql_conn.zip /home/${myuser}
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dotfiles/Config.xml
   sudo -u ${myuser} mkdir -p /home/${myuser}/.Zoiper
   sudo -u ${myuser} cp Config.xml /home/${myuser}/.Zoiper
+  rm -rf Config.xml
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dotfiles/audacity.cfg
   sudo -u ${myuser} mkdir -p /home/${myuser}/.audacity-data
   sudo -u ${myuser} cp audacity.cfg /home/${myuser}/.audacity-data
+  rm -rf audacity.cfg
 CHROOT
 fi
 
@@ -476,21 +478,18 @@ sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} mkdir -p /home/${myuser}/temp
 cd /home/${myuser}/temp
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
-curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
+sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Todo.txt
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/kbd_shortcuts.zip
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/App_screen.png
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dock.theme
+mv dock.theme /usr/share/plank/themes/Default
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/2dwall.jpg
+mv 2dwall.jpg /usr/share/backgrounds/gnome
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/p10k.zsh
+sudo -u ${myuser} mv p10k.zsh /home/${myuser}/.p10k.zsh
 sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/zshrc
-sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/Todo.txt
 chmod +x zshrc
-cp dock.theme /usr/share/plank/themes/Default
-cp 2dwall.jpg /usr/share/backgrounds/gnome
-sudo -u ${myuser} cp kbd_shortcuts.zip /home/${myuser}
-sudo -u ${myuser} cp App_screen.png /home/${myuser}
-sudo -u ${myuser} cp p10k.zsh /home/${myuser}/.p10k.zsh
-sudo -u ${myuser} cp zshrc /home/${myuser}/.zshrc
-sudo -u ${myuser} cp Todo.txt /home/${myuser}
+sudo -u ${myuser} mv zshrc /home/${myuser}/.zshrc
 CHROOT
 
 ### HIDING APPLICATIONS FROM START MENU
@@ -556,7 +555,6 @@ cat << EOF > /mnt/etc/fonts/local.conf
 EOF
 
 ### FINISH INSTALLATION
-rm -rf /mnt/home/${myuser}/temp
 rm -rf /mnt/home/${myuser}/.bash_logout
 rm -rf /mnt/home/${myuser}/.bash_profile
 rm -rf /mnt/home/${myuser}/.bashrc
