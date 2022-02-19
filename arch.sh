@@ -58,7 +58,11 @@ if [ "${confirm}" = "yes" ]; then
   sleep 1
   for n in ${mydisk}* ; do swapoff $n ; done
   sleep 1
-  wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
+  if [ "${mydisk}" = "/dev/nvme0n1" ]; then
+    wipefs -a "${mydisk}" "${mydisk}p1" "${mydisk}p2" "${mydisk}p3"
+  else
+    wipefs -a "${mydisk}" "${mydisk}1" "${mydisk}2" "${mydisk}3"
+  fi
   sleep 1
   (echo g; echo n; echo; echo; echo +512M; echo t; echo 1; echo w) | fdisk ${mydisk}
   sleep 1
@@ -322,7 +326,7 @@ CHROOT
 ### LAPTOP POWER SETTINGS
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm tlp sof-firmware alsa-ucm-conf
+  pacman -S --needed --noconfirm tlp sof-firmware
   systemctl enable tlp
 CHROOT
 fi
