@@ -351,7 +351,7 @@ CHROOT
 ### AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} paru -S --needed --noconfirm sublime-text-4 \
-photocollage google-chrome yaru-icon-theme zsh-theme-powerlevel10k-git
+google-chrome yaru-icon-theme zsh-theme-powerlevel10k-git
 CHROOT
 
 ### NTH APPS
@@ -377,12 +377,10 @@ if [ "${nth}" = "y" ]; then
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/mysql_conn.zip
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dotfiles/Config.xml
   sudo -u ${myuser} mkdir -p /home/${myuser}/.Zoiper
-  sudo -u ${myuser} cp Config.xml /home/${myuser}/.Zoiper
-  rm -rf Config.xml
+  sudo -u ${myuser} mv Config.xml /home/${myuser}/.Zoiper
   sudo -u ${myuser} curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/dotfiles/audacity.cfg
   sudo -u ${myuser} mkdir -p /home/${myuser}/.audacity-data
-  sudo -u ${myuser} cp audacity.cfg /home/${myuser}/.audacity-data
-  rm -rf audacity.cfg
+  sudo -u ${myuser} mv audacity.cfg /home/${myuser}/.audacity-data
 CHROOT
 fi
 
@@ -520,6 +518,7 @@ CHROOT
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm ttf-dejavu ttf-liberation \
 ttf-hack ttf-ubuntu-font-family noto-fonts-emoji
+cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/ms-fonts.zip
 unzip ms-fonts.zip
 chmod -R 755 ms-fonts
