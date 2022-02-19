@@ -182,7 +182,7 @@ cat << EOF > /mnt/home/${myuser}/.config/systemd/user/checkupdates.timer
 [Unit]
 Description=Run checkupdates every boot
 [Timer]
-OnBootSec=15sec
+OnBootSec=10sec
 [Install]
 WantedBy=timers.target
 EOF
