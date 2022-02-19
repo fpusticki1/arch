@@ -322,7 +322,7 @@ CHROOT
 ### LAPTOP POWER SETTINGS
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm tlp
+  pacman -S --needed --noconfirm tlp sof-firmware alsa-ucm-conf
   systemctl enable tlp
 CHROOT
 fi
