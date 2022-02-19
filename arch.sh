@@ -82,9 +82,6 @@ else
   exit 0
 fi
 
-### EXIT ON ERROR
-set -e
-
 ### PARTITION FORMATTING
 mkfs.ext4 ${rootpart}
 mkswap ${swappart}
