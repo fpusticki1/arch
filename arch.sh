@@ -351,7 +351,7 @@ CHROOT
 ### AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} paru -S --needed --noconfirm sublime-text-4 \
-google-chrome yaru-icon-theme zsh-theme-powerlevel10k-git
+google-chrome chrome-gnome-shell yaru-icon-theme zsh-theme-powerlevel10k-git
 CHROOT
 
 ### NTH APPS
