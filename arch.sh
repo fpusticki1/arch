@@ -27,7 +27,6 @@ read -p "*** Select GPU? (intel/amd/nvidia): " mygpu
 read -p "*** Enter hostname: " myhostname
 read -p "*** Enter username: " myuser
 read -p "*** Enter password: " mypassword
-read -p "*** Install Windows fonts? (y/N): " winfonts
 read -p "*** Install NTH apps? (y/N): " nth
 read -p "*** Install Thunderbird? (y/N): " thund
 read -p "*** Install Printer support? (y/N): " print
@@ -521,12 +520,12 @@ CHROOT
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm ttf-dejavu ttf-liberation \
 ttf-hack ttf-ubuntu-font-family noto-fonts-emoji
+curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/ms-fonts.zip
+unzip ms-fonts.zip
+chmod -R 755 ms-fonts
+mv ms-fonts /usr/share/fonts/
+rm -rf ms-fonts.zip
 CHROOT
-if [ "${winfonts}" = "y" ]; then
-  arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm ttf-ms-win10-auto
-CHROOT
-fi
 cat << EOF > /mnt/etc/fonts/local.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
