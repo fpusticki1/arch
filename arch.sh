@@ -521,7 +521,7 @@ ttf-hack ttf-ubuntu-font-family noto-fonts-emoji
 cd /home/${myuser}/temp
 curl -LO https://raw.githubusercontent.com/fpusticki1/arch/main/ms-fonts.zip
 unzip ms-fonts.zip
-chmod -R 755 ms-fonts
+chmod 755 ms-fonts
 mv ms-fonts /usr/share/fonts/
 rm -rf ms-fonts.zip
 CHROOT
