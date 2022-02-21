@@ -140,6 +140,7 @@ CHROOT
 ###-----------------------------------------------------------------------------
 
 ### PACMAN CONFIGURATION
+sed -i 's/#include \"\/usr\/share\/nano\/\*.nanorc\"/include \"\/usr\/share\/nano\/\*.nanorc\"/g' /mnt/etc/nanorc
 sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
 sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
 sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 8/g' /mnt/etc/pacman.conf
