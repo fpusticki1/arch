@@ -21,12 +21,11 @@ TWEAKS:
 	Legacy Window 	- Ubuntu Bold    11
 	
 EXTENSIONS:
+	Gnome 40 UI Improvements
 	No Overview at start-up
 	Top Panel Workspace Scroll
 	Unblank lock screen
-	Appindicator and KStatusNotifier
-	Gnome 40 UI Improvements
-	Notification Banner Position
+
 ------------------------
 Sublime
 	- Install compare plugin
