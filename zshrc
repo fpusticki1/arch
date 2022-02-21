@@ -152,7 +152,7 @@ export LESS_TERMCAP_se=$'\E[0m'
 export LESS_TERMCAP_so=$'\E[01;47;34m'
 export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[01;36m'
-export LESS=-R
+export LESS='-R --use-color'
 
 ## Alias section  --------------------------------------
 export LS_OPTIONS='--color=auto'
