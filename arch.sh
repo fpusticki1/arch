@@ -160,7 +160,7 @@ cat << EOF > /mnt/usr/local/checkupdates.sh
 #!/bin/bash
 sudo rm -rf /var/cache/pacman/pkg/{,.[!.],..?}*
 sudo rm -rf /home/${myuser}/.cache/paru/{,.[!.],..?}*
-paru -Sy
+sudo pacman -Sy
 if [[ \$(paru -Qu) ]]; then
   notify-send '*** UPDATES ***' 'New updates available...'
 fi
