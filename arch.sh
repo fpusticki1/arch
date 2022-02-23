@@ -304,7 +304,7 @@ arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm gnome-shell gnome-control-center gdm \
 gnome-tweaks gnome-shell-extensions gnome-system-monitor gvfs-mtp \
 gnome-terminal gnome-calculator gnome-screenshot gnome-backgrounds \
-nautilus file-roller seahorse simple-scan xdg-user-dirs sushi eog
+nautilus file-roller seahorse simple-scan xdg-user-dirs sushi eog mlocate
 CHROOT
 
 ### ENABLE SERVICES
@@ -321,6 +321,10 @@ systemctl disable lvm2-monitor
 systemctl mask lvm2-monitor
 systemctl disable ldconfig
 systemctl mask ldconfig
+systemctl disable updatedb.service
+systemctl mask updatedb.service
+systemctl disable updatedb.timer
+systemctl mask updatedb.timer
 CHROOT
 
 ### LAPTOP POWER SETTINGS
@@ -345,7 +349,7 @@ CHROOT
 ### PACMAN PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 pacman -S --needed --noconfirm unrar p7zip htop neofetch wget \
-mlocate net-tools plank vlc firefox libreoffice-still zsh-completions \
+net-tools plank vlc firefox libreoffice-still zsh-completions \
 zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions
 CHROOT
 
