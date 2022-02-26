@@ -425,7 +425,8 @@ fi
 ### VSCODE
 if [ "${vscode}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm code python-pip
+  sudo -u ${myuser} paru -S --needed --noconfirm visual-studio-code-bin
+  pacman -S --needed --noconfirm python-pip
 CHROOT
 fi
 
