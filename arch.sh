@@ -32,7 +32,7 @@ read -p "*** Install Thunderbird? (y/N): " thund
 read -p "*** Install Printer support? (y/N): " print
 read -p "*** Install Torrent support? (y/N): " torr
 read -p "*** Install Plex media server? (y/N): " plex
-read -p "*** Install Pycharm? (y/N): " pycharm
+read -p "*** Install VSCode? (y/N): " vscode
 read -p "*** Install Steam for games? (y/N): " games
 
 ### SET TIME
@@ -422,11 +422,10 @@ if [ "${plex}" = "y" ]; then
 CHROOT
 fi
 
-### PYCHARM
-if [ "${pycharm}" = "y" ]; then
+### VSCODE
+if [ "${vscode}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  sudo -u ${myuser} paru -S --needed --noconfirm pycharm-professional
-  pacman -S --needed --noconfirm python-pip
+  pacman -S --needed --noconfirm code python-pip
 CHROOT
 fi
 
