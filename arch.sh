@@ -11,21 +11,6 @@ echo "####################################################"
 ### SET KEYMAP
 loadkeys croat
 
-### ### USER INPUTS
-### echo "***************************************************"
-### myname="Franjo Pustički"
-### read -p "*** Is this a laptop? (y/n): " iflaptop
-### read -p "*** Select CPU? (intel/amd): " mycpu
-### read -p "*** Select GPU? (intel/nvidia): " mygpu
-### read -p "*** Enter hostname: " myhostname
-### read -p "*** Enter username: " myuser
-### read -p "*** Enter password: " mypassword
-### read -p "*** Install NTH apps? (y/N): " nth
-### read -p "*** Install Thunderbird? (y/N): " thund
-### read -p "*** Install Printer support? (y/N): " print
-### read -p "*** Install Torrent support? (y/N): " torr
-### read -p "*** Install Plex media server? (y/N): " plex
-
 ### SET TIME
 timedatectl set-timezone Europe/Zagreb
 timedatectl set-ntp true
@@ -44,8 +29,7 @@ echo
 read -p "Selected disk is: *** ${mydisk} ***
 *** Are you sure you want to erase it and install Arch Linux? (yes/n): " confirm
 if [ "${confirm}" = "yes" ]; then
-  umount "${mydisk}p1" "${mydisk}p2" "${mydisk}p3"
-  sgdisk -Z ${mydisk}
+  wipefs -af "${mydisk}" "${mydisk}p1" "${mydisk}p2" "${mydisk}p3"
   sleep 1
   (echo n; echo; echo; echo +512M; echo ef00; echo n; echo; echo; echo; echo 8300; echo w; echo y) | gdisk ${mydisk}
   sleep 1
@@ -56,8 +40,8 @@ else
 fi
 
 ### PARTITION FORMATTING
-mkfs.ext4 ${rootpart}
 mkfs.fat -F32 ${bootpart}
+mkfs.ext4 ${rootpart}
 
 ### MOUNTING FILESYSTEMS
 mount ${rootpart} /mnt
