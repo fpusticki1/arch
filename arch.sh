@@ -69,18 +69,13 @@ EOF
 
 ### USER INPUTS
 echo "***************************************************"
-### read -p "*** Is this a laptop? (y/n): " iflaptop
+read -p "*** Is this a laptop? (y/n): " iflaptop
 read -p "*** Select CPU? (intel/amd): " mycpu
-### read -p "*** Select GPU? (intel/nvidia): " mygpu
+read -p "*** Select GPU? (intel/nvidia): " mygpu
 read -p "*** Enter hostname: " myhostname
 read -p "*** Enter username: " myuser
 read -p "*** Enter password: " mypassword
 myname="Franjo Pustički"
-### read -p "*** Install NTH apps? (y/N): " nth
-### read -p "*** Install Thunderbird? (y/N): " thund
-### read -p "*** Install Printer support? (y/N): " print
-### read -p "*** Install Torrent support? (y/N): " torr
-### read -p "*** Install Plex media server? (y/N): " plex
 
 
 ###-----------------------------------------------------------------------------
@@ -88,9 +83,7 @@ myname="Franjo Pustički"
 ###-----------------------------------------------------------------------------
 
 ### BASE SYSTEM INSTALL
-pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode \
-dosfstools mtools nilfs-utils f2fs-tools man-db man-pages git zsh \
-nano networkmanager networkmanager-openvpn openresolv
+pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode zsh
 
 ### FSTAB
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -126,6 +119,15 @@ cat << EOF >> /mnt/etc/hosts
 127.0.1.1  ${myhostname}
 EOF
 
+### USER ACCOUNTS
+arch-chroot /mnt /bin/bash << CHROOT
+useradd -m -G users -s /usr/bin/zsh ${myuser}
+(echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
+(echo ${mypassword}; echo ${mypassword}) | passwd root
+usermod -c "${myname}" ${myuser}
+echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+CHROOT
+
 ### BOOTLOADER
 arch-chroot /mnt /bin/bash << CHROOT
 bootctl install
@@ -139,16 +141,46 @@ title Arch Linux
 linux /vmlinuz-linux
 initrd /${mycpu}-ucode.img
 initrd /initramfs-linux.img
-options root=${rootpart} rw 
-### quiet loglevel=3 rd.udev.log_level=3 nowatchdog
+options root=${rootpart} rw quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3
 EOF
 
-### USER ACCOUNTS
-#useradd -m -G users -s /usr/bin/zsh ${myuser} ### - TODO...
+
+###-----------------------------------------------------------------------------
+### PART 3: PACMAN INSTALLATION ------------------------------------------------
+###-----------------------------------------------------------------------------
+
 arch-chroot /mnt /bin/bash << CHROOT
-useradd -m -G users ${myuser}
-(echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
-(echo ${mypassword}; echo ${mypassword}) | passwd root
-usermod -c "${myname}" ${myuser}
-echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+pacman -S --needed --noconfirm nano zip unzip unrar htop neofetch wget git \
+zsh-completions zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions \
+dosfstools mtools nilfs-utils f2fs-tools man-db man-pages \
+networkmanager networkmanager-openvpn openresolv net-tools qbittorrent \
+cups simple-scan jdk8-openjdk plank vlc audacity mysql-workbench remmina freerdp \
+nautilus file-roller xdg-user-dirs seahorse sushi eog mlocate gnome-screenshot \
+gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions \
+gnome-system-monitor gvfs-mtp gnome-terminal gnome-calculator gnome-backgrounds \
+firefox libreoffice-still ttf-dejavu ttf-liberation ttf-hack noto-fonts-emoji \
+pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack easyeffects \
+xorg-server xorg-apps
+archlinux-java fix
 CHROOT
+
+### DISPLAY DRIVER
+if [ "${mygpu}" = "intel" ]; then
+  arch-chroot /mnt /bin/bash << CHROOT
+  pacman -S --needed --noconfirm mesa vulkan-intel
+CHROOT
+elif [ "${mygpu}" = "nvidia" ]; then
+  arch-chroot /mnt /bin/bash << CHROOT
+  pacman -S --needed --noconfirm nvidia nvidia-utils
+CHROOT
+else
+  sleep 1
+fi
+
+### LAPTOP POWER SETTINGS
+if [ "${iflaptop}" = "y" ]; then
+  arch-chroot /mnt /bin/bash << CHROOT
+  pacman -S --needed --noconfirm tlp sof-firmware thunderbird
+  systemctl enable tlp
+CHROOT
+fi
