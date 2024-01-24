@@ -69,13 +69,13 @@ EOF
 
 ### USER INPUTS
 echo "***************************************************"
-### myname="Franjo Pustički"
 ### read -p "*** Is this a laptop? (y/n): " iflaptop
 read -p "*** Select CPU? (intel/amd): " mycpu
 ### read -p "*** Select GPU? (intel/nvidia): " mygpu
-### read -p "*** Enter hostname: " myhostname
-### read -p "*** Enter username: " myuser
-### read -p "*** Enter password: " mypassword
+read -p "*** Enter hostname: " myhostname
+read -p "*** Enter username: " myuser
+read -p "*** Enter password: " mypassword
+myname="Franjo Pustički"
 ### read -p "*** Install NTH apps? (y/N): " nth
 ### read -p "*** Install Thunderbird? (y/N): " thund
 ### read -p "*** Install Printer support? (y/N): " print
@@ -91,3 +91,64 @@ read -p "*** Select CPU? (intel/amd): " mycpu
 pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode \
 dosfstools mtools nilfs-utils f2fs-tools man-db man-pages git zsh \
 nano networkmanager networkmanager-openvpn openresolv
+
+### FSTAB
+genfstab -U /mnt >> /mnt/etc/fstab
+
+### TIME ZONE
+arch-chroot /mnt /bin/bash << CHROOT
+ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
+hwclock --systohc
+CHROOT
+
+### LOCALE AND KEYMAP
+cat << EOF > /mnt/etc/locale.gen
+en_US.UTF-8 UTF-8
+hr_HR.UTF-8 UTF-8
+EOF
+arch-chroot /mnt /bin/bash << CHROOT
+locale-gen
+CHROOT
+cat << EOF > /mnt/etc/locale.conf
+LANG=en_US.UTF-8
+EOF
+cat << EOF > /mnt/etc/vconsole.conf
+KEYMAP=croat
+EOF
+
+### NETWORK
+cat << EOF > /mnt/etc/hostname
+${myhostname}
+EOF
+cat << EOF >> /mnt/etc/hosts
+127.0.0.1  localhost
+::1        localhost
+127.0.1.1  ${myhostname}
+EOF
+
+### BOOTLOADER
+arch-chroot /mnt /bin/bash << CHROOT
+bootctl install
+CHROOT
+cat << EOF > /mnt/boot/loader/loader.conf
+timeout 0
+default arch
+EOF
+cat << EOF > /mnt/boot/loader/entries/arch.conf
+title Arch Linux
+linux /vmlinuz-linux
+initrd /${mycpu}-ucode.img
+initrd /initramfs-linux.img
+options root=${rootpart} rw 
+### quiet loglevel=3 rd.udev.log_level=3 nowatchdog
+EOF
+
+### USER ACCOUNTS
+#useradd -m -G users -s /usr/bin/zsh ${myuser} ### - TODO...
+arch-chroot /mnt /bin/bash << CHROOT
+useradd -m -G users ${myuser}
+(echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
+(echo ${mypassword}; echo ${mypassword}) | passwd root
+usermod -c "${myname}" ${myuser}
+echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+CHROOT
