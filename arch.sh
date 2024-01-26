@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 ###-----------------------------------------------------------------------------
 ### PART 1: BASIC CONFIGURATION ------------------------------------------------
@@ -82,7 +83,7 @@ Server = http://ftp.myrveln.se/pub/linux/archlinux/$repo/os/$arch
 EOF
 
 ### BASE SYSTEM INSTALL
-pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode zsh
+pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode zsh git
 
 ### FSTAB
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -152,7 +153,7 @@ sed -i '/^\[options\]/a SkipReview' /mnt/etc/paru.conf
 
 ### INSTALL PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm nano htop neofetch wget git zip unzip unrar \
+pacman -S --needed --noconfirm nano htop neofetch wget zip unzip unrar \
 zsh-completions zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions \
 dosfstools mtools nilfs-utils f2fs-tools sqlite man-db man-pages source-highlight \
 networkmanager networkmanager-openvpn openresolv net-tools seahorse jdk8-openjdk \
@@ -167,7 +168,7 @@ CHROOT
 
 ### AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} paru -S google-chrome sublime-text-4 skypeforlinux-stable-bin \
+sudo -u ${myuser} paru -S --noconfirm google-chrome sublime-text-4 skypeforlinux-stable-bin \
 postman-bin termius-deb zsh-theme-powerlevel10k-git 7-zip gnome-browser-connector \
 yaru-icon-theme yaru-gtk-theme 
 CHROOT
@@ -182,7 +183,7 @@ else
   arch-chroot /mnt /bin/bash << CHROOT
   pacman -S --needed --noconfirm nvidia nvidia-utils qbittorrent openrazer-daemon
   gpasswd -a ${myuser} plugdev
-  sudo -u ${myuser} paru -S plex-media-server polychromatic
+  sudo -u ${myuser} paru -S --noconfirm plex-media-server polychromatic
   systemctl enable plexmediaserver
 CHROOT
 fi
@@ -214,10 +215,10 @@ systemctl disable lvm2-monitor
 systemctl mask lvm2-monitor
 systemctl disable ldconfig
 systemctl mask ldconfig
-systemctl disable updatedb.service
-systemctl mask updatedb.service
-systemctl disable updatedb.timer
-systemctl mask updatedb.timer
+systemctl disable bolt
+systemctl mask bolt
+systemctl disable iio-sensor-proxy
+systemctl mask iio-sensor-proxy
 CHROOT
 
 ### BLACKLIST MODULES
@@ -271,7 +272,7 @@ fi
 ###-----------------------------------------------------------------------------
 
 ### NANO COLORS
-sed -i 's/#include \"\/usr\/share\/nano\/\*.nanorc\"/include \"\/usr\/share\/nano\/\*.nanorc\"/g' /mnt/etc/nanorc
+sed -i 's/# include \"\/usr\/share\/nano\/\*.nanorc\"/include \"\/usr\/share\/nano\/\*.nanorc\"/g' /mnt/etc/nanorc
 cat << EOF >> /mnt/etc/nanorc
 set titlecolor bold,white,blue
 set promptcolor lightwhite,grey
@@ -322,37 +323,6 @@ cat << EOF > /mnt/etc/fonts/local.conf
   </alias>
 </fontconfig>
 EOF
-cat << EOF > /mnt/home/${myuser}/.config/gtk-4.0/settings.ini
-[Settings]
-gtk-hint-font-metrics=true
-EOF
-
-### HIDING APPLICATIONS FROM START MENU
-arch-chroot /mnt /bin/bash << CHROOT
-sudo -u ${myuser} mkdir -p /home/${myuser}/.local/share/applications
-cp /usr/share/applications/cups.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/libreoffice-base.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/libreoffice-draw.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/libreoffice-math.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/libreoffice-startcenter.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/avahi-discover.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/bvnc.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/bssh.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/qv4l2.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/qvidcap.desktop /home/${myuser}/.local/share/applications
-cp /usr/share/applications/nm-connection-editor.desktop /home/${myuser}/.local/share/applications
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/cups.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-base.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-draw.desktop
-sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-math.desktop
-sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-startcenter.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/avahi-discover.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bvnc.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bssh.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qv4l2.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qvidcap.desktop
-sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/nm-connection-editor.desktop
-CHROOT
 
 ### FINISH INSTALLATION
 arch-chroot /mnt /bin/bash << CHROOT
