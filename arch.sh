@@ -1,9 +1,5 @@
 #!/bin/bash
 
-echo "####################################################"
-echo "##### Welcome to the Arch installation script. #####"
-echo "####################################################"
-
 ###-----------------------------------------------------------------------------
 ### PART 1: BASIC CONFIGURATION ------------------------------------------------
 ###-----------------------------------------------------------------------------
@@ -58,6 +54,24 @@ echo && sleep 1
 read -p "Please check your new partitions and mount points.
 *** Press Enter to continue..."
 
+### USER INPUTS
+echo "***************************************************"
+read -p "*** Is this a laptop? (y/n): " iflaptop
+read -p "*** Enter hostname: " myhostname
+read -p "*** Enter username: " myuser
+read -p "*** Enter password: " mypassword
+myname="Franjo Pustički"
+if [ "${iflaptop}" = "y" ]; then
+  mycpu="intel"
+else
+  mycpu="amd"
+fi
+
+
+###-----------------------------------------------------------------------------
+### PART 2: BASE SYSTEM INSTALLATION -------------------------------------------
+###-----------------------------------------------------------------------------
+
 ### MIRROR LIST
 cat << 'EOF' > /etc/pacman.d/mirrorlist
 Server = http://archlinux.iskon.hr/$repo/os/$arch
@@ -67,65 +81,34 @@ Server = http://arch.jensgutermuth.de/$repo/os/$arch
 Server = http://ftp.myrveln.se/pub/linux/archlinux/$repo/os/$arch
 EOF
 
-### USER INPUTS
-echo "***************************************************"
-read -p "*** Is this a laptop? (y/n): " iflaptop
-read -p "*** Select CPU? (intel/amd): " mycpu
-read -p "*** Select GPU? (intel/nvidia): " mygpu
-read -p "*** Enter hostname: " myhostname
-read -p "*** Enter username: " myuser
-read -p "*** Enter password: " mypassword
-myname="Franjo Pustički"
-
-
-###-----------------------------------------------------------------------------
-### PART 2: BASE SYSTEM INSTALLATION -------------------------------------------
-###-----------------------------------------------------------------------------
-
 ### BASE SYSTEM INSTALL
 pacstrap -K /mnt base base-devel linux linux-firmware ${mycpu}-ucode zsh
 
 ### FSTAB
 genfstab -U /mnt >> /mnt/etc/fstab
 
-### TIME ZONE
+### TIME, LOCALE, KEYMAP, NETWORK
 arch-chroot /mnt /bin/bash << CHROOT
 ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
 hwclock --systohc
-CHROOT
-
-### LOCALE AND KEYMAP
-cat << EOF > /mnt/etc/locale.gen
-en_US.UTF-8 UTF-8
-hr_HR.UTF-8 UTF-8
-EOF
-arch-chroot /mnt /bin/bash << CHROOT
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+echo "hr_HR.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "KEYMAP=croat" > /etc/vconsole.conf
+echo "${myhostname}" > /etc/hostname
+echo "127.0.0.1  localhost" >> /etc/hosts
+echo "::1        localhost" >> /etc/hosts
+echo "127.0.1.1  ${myhostname}" >> /etc/hosts
 CHROOT
-cat << EOF > /mnt/etc/locale.conf
-LANG=en_US.UTF-8
-EOF
-cat << EOF > /mnt/etc/vconsole.conf
-KEYMAP=croat
-EOF
-
-### NETWORK
-cat << EOF > /mnt/etc/hostname
-${myhostname}
-EOF
-cat << EOF >> /mnt/etc/hosts
-127.0.0.1  localhost
-::1        localhost
-127.0.1.1  ${myhostname}
-EOF
 
 ### USER ACCOUNTS
 arch-chroot /mnt /bin/bash << CHROOT
-useradd -m -G users -s /usr/bin/zsh ${myuser}
-(echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
-(echo ${mypassword}; echo ${mypassword}) | passwd root
+useradd -m -G users ${myuser}
 usermod -c "${myname}" ${myuser}
 echo "${myuser} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+(echo ${mypassword}; echo ${mypassword}) | passwd ${myuser}
+(echo ${mypassword}; echo ${mypassword}) | passwd root
 CHROOT
 
 ### BOOTLOADER
@@ -146,41 +129,241 @@ EOF
 
 
 ###-----------------------------------------------------------------------------
-### PART 3: PACMAN INSTALLATION ------------------------------------------------
+### PART 3: PACKAGE INSTALLATION -----------------------------------------------
 ###-----------------------------------------------------------------------------
 
+### INSTALL PARU
 arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm nano zip unzip unrar htop neofetch wget git \
+cd /home/${myuser}
+sudo -u ${myuser} git clone https://aur.archlinux.org/paru.git
+cd paru
+sudo -u ${myuser} makepkg -si --noconfirm
+rm -rf /home/${myuser}/paru
+CHROOT
+
+### PACMAN/PARU CONFIGURATION
+sed -i 's/#Color/Color/g' /mnt/etc/pacman.conf
+sed -i 's/#VerbosePkgLists/VerbosePkgLists/g' /mnt/etc/pacman.conf
+sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 5/g' /mnt/etc/pacman.conf
+sed -i 's/#HookDir/HookDir/g' /mnt/etc/pacman.conf
+sed -i 's/#RemoveMake/RemoveMake/g' /mnt/etc/paru.conf
+sed -i '/^\[options\]/a BatchInstall' /mnt/etc/paru.conf
+sed -i '/^\[options\]/a SkipReview' /mnt/etc/paru.conf
+
+### INSTALL PACKAGES
+arch-chroot /mnt /bin/bash << CHROOT
+pacman -S --needed --noconfirm nano htop neofetch wget git zip unzip unrar \
 zsh-completions zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions \
-dosfstools mtools nilfs-utils f2fs-tools man-db man-pages \
-networkmanager networkmanager-openvpn openresolv net-tools qbittorrent \
-cups simple-scan jdk8-openjdk plank vlc audacity mysql-workbench remmina freerdp \
-nautilus file-roller xdg-user-dirs seahorse sushi eog mlocate gnome-screenshot \
-gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions \
-gnome-system-monitor gvfs-mtp gnome-terminal gnome-calculator gnome-backgrounds \
-firefox libreoffice-still ttf-dejavu ttf-liberation ttf-hack noto-fonts-emoji \
-pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack easyeffects \
-xorg-server xorg-apps
+dosfstools mtools nilfs-utils f2fs-tools sqlite man-db man-pages source-highlight \
+networkmanager networkmanager-openvpn openresolv net-tools seahorse jdk8-openjdk \
+pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack alsa-utils easyeffects \
+xorg-server xorg-apps system-config-printer cups hplip simple-scan gnome-screenshot gnome-backgrounds \
+xdg-user-dirs gvfs-mtp nautilus file-roller sushi eog mlocate gnome-terminal gnome-calculator \
+gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions gnome-system-monitor \
+ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-hack adobe-source-code-pro-fonts adobe-source-sans-fonts \
+firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp
 archlinux-java fix
 CHROOT
 
-### DISPLAY DRIVER
-if [ "${mygpu}" = "intel" ]; then
-  arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm mesa vulkan-intel
+### AUR PACKAGES
+arch-chroot /mnt /bin/bash << CHROOT
+sudo -u ${myuser} paru -S google-chrome sublime-text-4 skypeforlinux-stable-bin \
+postman-bin termius-deb zsh-theme-powerlevel10k-git 7-zip gnome-browser-connector \
+yaru-icon-theme yaru-gtk-theme 
 CHROOT
-elif [ "${mygpu}" = "nvidia" ]; then
-  arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils
-CHROOT
-else
-  sleep 1
-fi
 
-### LAPTOP POWER SETTINGS
+### LAPTOP OR DESKTOP
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm tlp sof-firmware thunderbird
+  pacman -S --needed --noconfirm mesa vulkan-intel tlp sof-firmware thunderbird 
   systemctl enable tlp
 CHROOT
+else
+  arch-chroot /mnt /bin/bash << CHROOT
+  pacman -S --needed --noconfirm nvidia nvidia-utils qbittorrent openrazer-daemon
+  gpasswd -a ${myuser} plugdev
+  sudo -u ${myuser} paru -S plex-media-server polychromatic
+  systemctl enable plexmediaserver
+CHROOT
 fi
+
+
+###-----------------------------------------------------------------------------
+### PART 4: SYSTEM CONFIGURATION -----------------------------------------------
+###-----------------------------------------------------------------------------
+
+### AUTOLOGIN
+sed -i '/^\[daemon\]/a AutomaticLoginEnable=True' /mnt/etc/gdm/custom.conf
+sed -i "/^\[daemon\]/a AutomaticLogin=${myuser}" /mnt/etc/gdm/custom.conf
+sed -i 's/#WaylandEnable=false/WaylandEnable=false/g' /mnt/etc/gdm/custom.conf
+sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=5s/g' /mnt/etc/systemd/system.conf
+
+### ENABLE SERVICES
+arch-chroot /mnt /bin/bash << CHROOT
+systemctl enable gdm
+systemctl enable NetworkManager
+systemctl enable systemd-timesyncd
+systemctl enable systemd-boot-update
+systemctl enable cups.socket
+systemctl enable fstrim.timer
+CHROOT
+
+### DISABLE SERVICES
+arch-chroot /mnt /bin/bash << CHROOT
+systemctl disable lvm2-monitor
+systemctl mask lvm2-monitor
+systemctl disable ldconfig
+systemctl mask ldconfig
+systemctl disable updatedb.service
+systemctl mask updatedb.service
+systemctl disable updatedb.timer
+systemctl mask updatedb.timer
+CHROOT
+
+### BLACKLIST MODULES
+cat << EOF > /mnt/etc/modprobe.d/blacklist.conf
+blacklist sp5100_tco
+blacklist iTCO_wdt
+blacklist iTCO_vendor_support
+blacklist aesni_intel
+blacklist pcspkr
+blacklist joydev
+blacklist mousedev
+blacklist mac_hid
+EOF
+
+### INITRAMFS (NVIDIA KMS)
+if [ "${iflaptop}" = "y" ]; then
+  sed -i 's/MODULES=()/MODULES=(i915)/g' /mnt/etc/mkinitcpio.conf
+  sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont/HOOKS=(base systemd autodetect modconf kms keyboard keymap/g' /mnt/etc/mkinitcpio.conf
+  arch-chroot /mnt /bin/bash << CHROOT
+  mkinitcpio -P
+CHROOT
+else
+  sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/g' /mnt/etc/mkinitcpio.conf
+  sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont/HOOKS=(base systemd autodetect modconf keyboard keymap/g' /mnt/etc/mkinitcpio.conf
+  sed -i 's/rd.udev.log_level=3/rd.udev.log_level=3 nvidia-drm.modeset=1)/g' /mnt/boot/loader/entries/arch.conf
+  arch-chroot /mnt /bin/bash << CHROOT
+  mkinitcpio -P
+CHROOT
+  mkdir /mnt/etc/pacman.d/hooks
+  cat << 'EOF' > /mnt/etc/pacman.d/hooks/nvidia.hook
+  [Trigger]
+  Operation=Install
+  Operation=Upgrade
+  Operation=Remove
+  Type=Package
+  Target=nvidia
+  Target=linux
+  
+  [Action]
+  Description=Update Nvidia module in initcpio
+  Depends=mkinitcpio
+  When=PostTransaction
+  NeedsTargets
+  Exec=/bin/sh -c 'while read -r trg; do case $trg in linux) exit 0; esac; done; /usr/bin/mkinitcpio -P'
+EOF
+fi
+
+
+###-----------------------------------------------------------------------------
+### PART 5: POST INSTALL TWEAKS ------------------------------------------------
+###-----------------------------------------------------------------------------
+
+### NANO COLORS
+sed -i 's/#include \"\/usr\/share\/nano\/\*.nanorc\"/include \"\/usr\/share\/nano\/\*.nanorc\"/g' /mnt/etc/nanorc
+cat << EOF >> /mnt/etc/nanorc
+set titlecolor bold,white,blue
+set promptcolor lightwhite,grey
+set statuscolor bold,white,green
+set errorcolor bold,white,red
+set spotlightcolor black,lightyellow
+set selectedcolor lightwhite,magenta
+set stripecolor ,yellow
+set scrollercolor cyan
+set numbercolor cyan
+set keycolor cyan
+set functioncolor green
+EOF
+
+### FONTS
+cat << EOF > /mnt/etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <match target="font">
+    <edit mode="assign" name="antialias">
+      <bool>true</bool>
+    </edit>
+    <edit mode="assign" name="embeddedbitmap">
+      <bool>false</bool>
+    </edit>
+    <edit mode="assign" name="hinting">
+      <bool>true</bool>
+    </edit>
+    <edit mode="assign" name="hintstyle">
+      <const>hintslight</const>
+    </edit>
+    <edit mode="assign" name="lcdfilter">
+      <const>lcddefault</const>
+    </edit>
+    <edit mode="assign" name="rgba">
+      <const>rgb</const>
+    </edit>
+  </match>
+<!-- Map sans-serif fonts -->
+  <alias>
+    <family>sans-serif</family>
+    <prefer>
+      <family>Noto Sans</family>
+      <family>Cantarell</family>
+      <family>DejaVu Sans</family>
+    </prefer>
+  </alias>
+</fontconfig>
+EOF
+cat << EOF > /mnt/home/${myuser}/.config/gtk-4.0/settings.ini
+[Settings]
+gtk-hint-font-metrics=true
+EOF
+
+### HIDING APPLICATIONS FROM START MENU
+arch-chroot /mnt /bin/bash << CHROOT
+sudo -u ${myuser} mkdir -p /home/${myuser}/.local/share/applications
+cp /usr/share/applications/cups.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-base.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-draw.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-math.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/libreoffice-startcenter.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/avahi-discover.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/bvnc.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/bssh.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/qv4l2.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/qvidcap.desktop /home/${myuser}/.local/share/applications
+cp /usr/share/applications/nm-connection-editor.desktop /home/${myuser}/.local/share/applications
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/cups.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-base.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/libreoffice-draw.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-math.desktop
+sed -i 's/NoDisplay=false/NoDisplay=true/g' /home/${myuser}/.local/share/applications/libreoffice-startcenter.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/avahi-discover.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bvnc.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/bssh.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qv4l2.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/qvidcap.desktop
+sed -i '/^\[Desktop Entry\]/a NoDisplay=true' /home/${myuser}/.local/share/applications/nm-connection-editor.desktop
+CHROOT
+
+### FINISH INSTALLATION
+arch-chroot /mnt /bin/bash << CHROOT
+pacman -Qtdq | pacman -Rns -
+CHROOT
+echo "***********************************
+***** Installation completed! *****
+***********************************"
+read -p "System will reboot now
+*** Press Enter to continue..."
+sleep 1
+umount -R /mnt
+sleep 3
+reboot
