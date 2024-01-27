@@ -161,7 +161,7 @@ pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack a
 xorg-server xorg-apps system-config-printer cups hplip simple-scan gnome-screenshot gnome-backgrounds \
 xdg-user-dirs gvfs-mtp nautilus file-roller sushi eog mlocate gnome-terminal gnome-calculator \
 gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions gnome-system-monitor \
-ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-hack adobe-source-code-pro-fonts adobe-source-sans-fonts \
+ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-ubuntu-font-family \
 firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp
 archlinux-java fix
 CHROOT
@@ -312,15 +312,14 @@ cat << EOF > /mnt/etc/fonts/local.conf
       <const>rgb</const>
     </edit>
   </match>
-<!-- Map sans-serif fonts -->
-  <alias>
-    <family>sans-serif</family>
-    <prefer>
-      <family>Noto Sans</family>
-      <family>Cantarell</family>
-      <family>DejaVu Sans</family>
-    </prefer>
-  </alias>
+  <match target="pattern">
+    <test name="family" compare="eq">
+      <string>Noto Sans</string>
+    </test>
+    <edit name="family" mode="prepend">
+      <string>Cantarell</string>
+    </edit>
+  </match>
 </fontconfig>
 EOF
 
