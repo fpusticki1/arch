@@ -176,7 +176,7 @@ CHROOT
 ### LAPTOP OR DESKTOP
 if [ "${iflaptop}" = "y" ]; then
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm mesa vulkan-intel tlp sof-firmware thunderbird 
+  pacman -S --needed --noconfirm mesa vulkan-intel intel-media-driver tlp sof-firmware thunderbird 
   systemctl enable tlp
 CHROOT
 else
@@ -314,12 +314,30 @@ cat << EOF > /mnt/etc/fonts/local.conf
   </match>
   <match target="pattern">
     <test name="family" compare="eq">
-      <string>Noto Sans</string>
+      <string>Ubuntu</string>
     </test>
     <edit name="family" mode="prepend">
       <string>Cantarell</string>
     </edit>
   </match>
+  <alias>
+      <family>sans-serif</family>
+      <prefer>
+          <family>Ubuntu</family>
+      </prefer>
+  </alias>
+  <alias>
+      <family>serif</family>
+      <prefer>
+          <family>Ubuntu</family>
+      </prefer>
+  </alias>
+  <alias>
+      <family>monospace</family>
+      <prefer>
+          <family>Ubuntu Mono</family>
+      </prefer>
+  </alias>
 </fontconfig>
 EOF
 
