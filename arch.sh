@@ -207,6 +207,7 @@ systemctl enable systemd-timesyncd
 systemctl enable systemd-boot-update
 systemctl enable cups.socket
 systemctl enable fstrim.timer
+systemctl enable sshd
 CHROOT
 
 ### DISABLE SERVICES
