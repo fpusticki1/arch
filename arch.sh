@@ -153,14 +153,15 @@ sed -i '/^\[options\]/a SkipReview' /mnt/etc/paru.conf
 
 ### INSTALL PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
-pacman -S --needed --noconfirm nano htop neofetch wget zip unzip unrar \
+pacman -S --needed --noconfirm nano htop neofetch wget zip unzip unrar ufw \
 zsh-completions zsh-syntax-highlighting zsh-history-substring-search zsh-autosuggestions \
 dosfstools mtools nilfs-utils f2fs-tools sqlite man-db man-pages source-highlight \
 networkmanager networkmanager-openvpn openresolv net-tools seahorse jdk8-openjdk \
 pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack alsa-utils easyeffects \
-xorg-server xorg-apps system-config-printer cups hplip simple-scan gnome-screenshot gnome-backgrounds \
-xdg-user-dirs gvfs-mtp nautilus file-roller gnome-disk-utility sushi eog mlocate gnome-terminal gnome-calculator \
+xorg-server xorg-apps system-config-printer cups hplip sane-airscan simple-scan \
+xdg-user-dirs xdg-desktop-portal-gnome gvfs-mtp nautilus file-roller gnome-disk-utility sushi eog mlocate \
 gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions gnome-system-monitor \
+gnome-terminal gnome-calculator gnome-backgrounds gnome-screenshot \
 ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-ubuntu-font-family \
 firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp
 archlinux-java fix
@@ -170,7 +171,7 @@ CHROOT
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} paru -S --noconfirm google-chrome sublime-text-4 skypeforlinux-stable-bin \
 postman-bin termius-deb zsh-theme-powerlevel10k-git 7-zip gnome-browser-connector \
-yaru-icon-theme yaru-gtk-theme 
+yaru-icon-theme yaru-gtk-theme ttf-ms-fonts ttf-vista-fonts
 CHROOT
 
 ### LAPTOP OR DESKTOP
@@ -208,6 +209,7 @@ systemctl enable systemd-boot-update
 systemctl enable cups.socket
 systemctl enable fstrim.timer
 systemctl enable sshd
+systemctl enable ufw
 CHROOT
 
 ### DISABLE SERVICES
@@ -319,24 +321,6 @@ cat << EOF > /mnt/etc/fonts/local.conf
       <string>Cantarell</string>
     </edit>
   </match>
-  <alias>
-      <family>sans-serif</family>
-      <prefer>
-          <family>Ubuntu</family>
-      </prefer>
-  </alias>
-  <alias>
-      <family>serif</family>
-      <prefer>
-          <family>Ubuntu</family>
-      </prefer>
-  </alias>
-  <alias>
-      <family>monospace</family>
-      <prefer>
-          <family>Ubuntu Mono</family>
-      </prefer>
-  </alias>
 </fontconfig>
 EOF
 
