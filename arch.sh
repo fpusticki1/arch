@@ -159,7 +159,7 @@ dosfstools mtools nilfs-utils f2fs-tools sqlite man-db man-pages source-highligh
 networkmanager networkmanager-openvpn openresolv net-tools seahorse jdk8-openjdk \
 pipewire wireplumber pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack alsa-utils easyeffects \
 xorg-server xorg-apps system-config-printer cups hplip simple-scan gnome-screenshot gnome-backgrounds \
-xdg-user-dirs gvfs-mtp nautilus file-roller sushi eog mlocate gnome-terminal gnome-calculator \
+xdg-user-dirs gvfs-mtp nautilus file-roller gnome-disk-utility sushi eog mlocate gnome-terminal gnome-calculator \
 gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions gnome-system-monitor \
 ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-ubuntu-font-family \
 firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp
