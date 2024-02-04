@@ -95,12 +95,18 @@ hwclock --systohc
 echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 echo "hr_HR.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
-echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "LANG=en_US.UTF-8
+LANG=en_US.UTF-8
+LC_NUMERIC=hr_HR.UTF-8
+LC_TIME=hr_HR.UTF-8
+LC_MONETARY=hr_HR.UTF-8
+LC_PAPER=hr_HR.UTF-8
+LC_MEASUREMENT=hr_HR.UTF-8" > /etc/locale.conf
 echo "KEYMAP=croat" > /etc/vconsole.conf
 echo "${myhostname}" > /etc/hostname
-echo "127.0.0.1  localhost" >> /etc/hosts
-echo "::1        localhost" >> /etc/hosts
-echo "127.0.1.1  ${myhostname}" >> /etc/hosts
+echo "127.0.0.1  localhost
+::1        localhost
+127.0.1.1  ${myhostname}" >> /etc/hosts
 CHROOT
 
 ### USER ACCOUNTS
@@ -162,16 +168,17 @@ xorg-server xorg-apps system-config-printer cups hplip sane-airscan simple-scan 
 xdg-user-dirs xdg-desktop-portal-gnome gvfs-mtp nautilus file-roller gnome-disk-utility sushi eog mlocate \
 gnome-shell gnome-control-center gdm gnome-tweaks gnome-shell-extensions gnome-system-monitor \
 gnome-terminal gnome-calculator gnome-backgrounds gnome-screenshot \
-ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji ttf-ubuntu-font-family \
-firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp
+firefox libreoffice-still plank vlc audacity sox mysql-workbench remmina freerdp \
+ttf-dejavu ttf-liberation noto-fonts noto-fonts-emoji
+
 archlinux-java fix
 CHROOT
 
 ### AUR PACKAGES
 arch-chroot /mnt /bin/bash << CHROOT
 sudo -u ${myuser} paru -S --noconfirm google-chrome sublime-text-4 skypeforlinux-stable-bin \
-postman-bin termius-deb zsh-theme-powerlevel10k-git 7-zip gnome-browser-connector \
-yaru-icon-theme yaru-gtk-theme ttf-ms-fonts ttf-vista-fonts
+postman-bin termius-deb 7-zip gnome-browser-connector yaru-icon-theme yaru-gtk-theme \
+zsh-theme-powerlevel10k-git
 CHROOT
 
 ### LAPTOP OR DESKTOP
@@ -182,10 +189,19 @@ if [ "${iflaptop}" = "y" ]; then
 CHROOT
 else
   arch-chroot /mnt /bin/bash << CHROOT
-  pacman -S --needed --noconfirm nvidia nvidia-utils qbittorrent openrazer-daemon
+  pacman -S --needed --noconfirm nvidia nvidia-utils nvidia-settings qbittorrent linux-headers openrazer-daemon
   gpasswd -a ${myuser} plugdev
   sudo -u ${myuser} paru -S --noconfirm plex-media-server polychromatic
   systemctl enable plexmediaserver
+  groupadd -f plex
+  usermod -aG plex ${myuser}
+  mkdir /plex
+  chown root:plex /plex
+  umask 0007 /plex
+  chmod u+rwx,g+srwx,o-rxw /plex
+
+  sed -i 's/#NoExtract   =/NoExtract   = \'\/usr\/lib\/plexmediaserver\/Plex Tuner Service\'/g' /mnt/etc/pacman.conf
+  mv '/usr/lib/plexmediaserver/Plex Tuner Service' '/usr/lib/plexmediaserver/Plex Tuner Service.disabled'
 CHROOT
 fi
 
@@ -207,6 +223,7 @@ systemctl enable NetworkManager
 systemctl enable systemd-timesyncd
 systemctl enable systemd-boot-update
 systemctl enable cups.socket
+systemctl enable bluetooth
 systemctl enable fstrim.timer
 systemctl enable sshd
 systemctl enable ufw
@@ -236,7 +253,7 @@ blacklist mousedev
 blacklist mac_hid
 EOF
 
-### INITRAMFS (NVIDIA KMS)
+### INITRAMFS (NVIDIA DRM KMS)
 if [ "${iflaptop}" = "y" ]; then
   sed -i 's/MODULES=()/MODULES=(i915)/g' /mnt/etc/mkinitcpio.conf
   sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont/HOOKS=(base systemd autodetect modconf kms keyboard keymap/g' /mnt/etc/mkinitcpio.conf
@@ -246,7 +263,7 @@ CHROOT
 else
   sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/g' /mnt/etc/mkinitcpio.conf
   sed -i 's/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont/HOOKS=(base systemd autodetect modconf keyboard keymap/g' /mnt/etc/mkinitcpio.conf
-  sed -i 's/rd.udev.log_level=3/rd.udev.log_level=3 nvidia-drm.modeset=1)/g' /mnt/boot/loader/entries/arch.conf
+  sed -i 's/rd.udev.log_level=3/rd.udev.log_level=3 nvidia-drm.modeset=1/g' /mnt/boot/loader/entries/arch.conf
   arch-chroot /mnt /bin/bash << CHROOT
   mkinitcpio -P
 CHROOT
@@ -313,14 +330,14 @@ cat << EOF > /mnt/etc/fonts/local.conf
       <const>rgb</const>
     </edit>
   </match>
-  <match target="pattern">
-    <test name="family" compare="eq">
-      <string>Ubuntu</string>
-    </test>
-    <edit name="family" mode="prepend">
-      <string>Cantarell</string>
-    </edit>
-  </match>
+  <alias>
+    <family>Ubuntu</family>
+    <prefer>
+      <family>Ubuntu</family>
+      <family>Noto Sans</family>
+      <family>Cantarell</family>
+    </prefer>
+  </alias>
 </fontconfig>
 EOF
 
