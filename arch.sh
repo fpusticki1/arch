@@ -249,7 +249,6 @@ blacklist iTCO_vendor_support
 blacklist aesni_intel
 blacklist pcspkr
 blacklist joydev
-blacklist mousedev
 blacklist mac_hid
 EOF
 
